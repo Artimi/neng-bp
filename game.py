@@ -55,22 +55,25 @@ class Game(object):
                 # add to list of best responses
                 self.brs[player].update(self.bestResponse(player, strategy))
         # PNE is where all player have Best Response
-        result = set.intersection(*self.brs)
+        ne_coordinates = set.intersection(*self.brs)
+        result = map(self.coordinateToStrategyProfile, ne_coordinates)
         return result
-
-    def getMNE(self):
-        """
-        Computes MNE
-        """
-        if self.num_players == 2:
-            self.support_enumeration()
-        else:
-            raise NotImplementedError()
 
     def get_equation_set(self, combination, player, num_supports):
         """
         Return set of equations for given player and combination of strategies
         for 2 players games in support_enumeration
+
+        This function returns matrix to compute (Nisan algorithm 3.4)
+        (I = combination[player])
+        \sum_{i \in I} x_i b_{ij} = v
+        \sum_{i \in I} x_i = 1
+        In matrix form (k = num_supports):
+        / b_11 b_12 ... b_1k -1 \ / x_1 \    / 0 \
+        | b_21 b_22 ... b_2k -1 | | x_2 |    | 0 |
+        | ...  ...  ... ... ... | | ... | =  |...|
+        | b_k1 b_k2 ... b_kk -1 | | x_k |    | 0 |
+        \ 1    1    ... 1     0 / \ v   /    \ 1 /
         """
         row_index = np.zeros(self.shape[0], dtype=bool)
         col_index = np.zeros(self.shape[1], dtype=bool)
@@ -92,42 +95,46 @@ class Game(object):
         """
         Computes NE of 2 players nondegenerate games
         """
-        self.getPNE()
-        result = []
-        for num_supports in range(2, min(self.shape) + 1):  # changed 1 to to 2
+        result = self.getPNE()
+        # for every numbers of supports
+        for num_supports in range(2, min(self.shape) + 1):
             supports = []
             equal = [0] * num_supports
             equal.append(1)
+            # all combinations of support length num_supports
             for player in range(self.num_players):
                 supports.append(itertools.combinations(range(self.shape[player]), num_supports))
+            # cartesian product of combinations of both player
             for combination in itertools.product(supports[0], supports[1]):
                 mne = []
                 is_mne = True
-                # for profile in itertools.product(combination):
-                    # if profile not in self.brs
+                # for both player compute set of equations
                 for player in range(self.num_players):
                     equations = self.get_equation_set(combination, player, num_supports)
                     try:
-                        result_p = np.linalg.solve(equations, equal)
-                    except np.linalg.LinAlgError:  # not solvable equations
+                        equations_result = np.linalg.solve(equations, equal)
+                    except np.linalg.LinAlgError:  # unsolvable equations
                         is_mne = False
                         break
-                    probabilities = result_p[:-1]
-                    if not np.all(probabilities >= 0):  # TODO: must be best response
+                    probabilities = equations_result[:-1]
+                    # all probabilities are nonnegative
+                    if not np.all(probabilities >= 0):
                         is_mne = False
                         break
                     player_strategy_profile = [0.0] * self.shape[player]
                     for index, i in enumerate(combination[player]):
                         player_strategy_profile[i] = probabilities[index]
+                    # best response condition
+                    for pure_strategy in combination[(player + 1) % 2]:
+                        if not any(br[(player + 1) % 2] == pure_strategy
+                                   and br[player] in combination[player]
+                                   for br in self.brs[player]):
+                            is_mne = False
+                            break
                     mne.extend(player_strategy_profile)
                 if not is_mne:
                     continue
                 result.append(tuple(mne))
-                print combination, ":", mne
-                print "product: ",
-                for i in itertools.product(*combination):
-                    print i,
-                print
         return result
 
     def findEquilibria(self):
@@ -135,7 +142,10 @@ class Game(object):
         Find all equilibria
         @return set of PNE and MNE
         """
-        return self.getPNE()
+        if self.num_players == 2:
+            return self.support_enumeration()
+        else:
+            raise NotImplementedError()
 
     def read(self, nfg):
         """
@@ -188,37 +198,34 @@ class Game(object):
                     result += str(i) + " "
         return result
 
-    def tupleToStrategyProfile(self, t):
+    def coordinateToStrategyProfile(self, t):
         """
         Translate tuple form of strategy profile to long, gambit-like format
         @params t tuple to Translate
         @return list of numbers in long format
         """
-        result = [0 for i in range(sum(self.shape))]
+        result = [0] * sum(self.shape)
         accumulator = 0
         for index, i in enumerate(self.shape):
             result[t[index] + accumulator] = 1
             accumulator += i
-        return result
+        return tuple(result)
 
 
 if __name__ == '__main__':
     import argparse
-    # import pprint as pprint
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
-    parser.add_argument('-p', '--pickle-file')
     args = parser.parse_args()
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
-#     game_str = """NFG 1 R "Selten (IJGT, 75), Figure 2, normal form"
-# { "Player 1" "Player 2" } { 3 2 }
-
-# 1 1 0 2 0 2 1 1 0 3 2 0"""
-    g.support_enumeration()
-    g.getPNE()
-    print "BRS: ", g.brs
+    l = g.findEquilibria()
+    for i in l:
+        s = ",".join(map(str, i))
+        print "NE," + s
+    # print g.getPNE()
+    # print "BRS: ", g.brs
     # g.getPNE()
     # result = g.findEquilibria()
     # print result
