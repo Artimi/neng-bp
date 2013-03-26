@@ -32,11 +32,13 @@ class Game(object):
         payoffs = self.array[strategy].tolist()
         max_payoff = max(payoffs, key=lambda x: x[player])[player]
         # numbers of best responses strategies
-        brs = [index for index, br in enumerate(payoffs) if br[player] == max_payoff]
+        brs = [index for index, br in enumerate(payoffs)
+               if br[player] == max_payoff]
         for br in brs:
             s = strategy[:]
             s[player] = br
-            result.add(tuple(s))  # made whole strategy profile, not just one strategy
+            # made whole strategy profile, not just one strategy
+            result.add(tuple(s))
         return result
 
     def getPNE(self):
@@ -84,12 +86,14 @@ class Game(object):
         numbers = []
         last = [1] * num_supports
         last.append(0)
-        for index, payoff in enumerate(np.nditer(view, order=order[player], flags=['refs_ok'])):
+        for index, payoff in enumerate(np.nditer(view, order=order[player],
+                                                 flags=['refs_ok'])):
             numbers.append(payoff.flat[0][(player + 1) % 2])
             if index % num_supports == num_supports - 1:
                 numbers.append(-1.0)
         numbers.extend(last)
-        return np.array(numbers, dtype=float).reshape(num_supports + 1, num_supports + 1)
+        return np.array(numbers, dtype=float).reshape(num_supports + 1,
+                                                      num_supports + 1)
 
     def support_enumeration(self):
         """
@@ -103,14 +107,16 @@ class Game(object):
             equal.append(1)
             # all combinations of support length num_supports
             for player in range(self.num_players):
-                supports.append(itertools.combinations(range(self.shape[player]), num_supports))
+                supports.append(itertools.combinations(
+                    range(self.shape[player]), num_supports))
             # cartesian product of combinations of both player
             for combination in itertools.product(supports[0], supports[1]):
                 mne = []
                 is_mne = True
                 # for both player compute set of equations
                 for player in range(self.num_players):
-                    equations = self.get_equation_set(combination, player, num_supports)
+                    equations = self.get_equation_set(combination, player,
+                                                      num_supports)
                     try:
                         equations_result = np.linalg.solve(equations, equal)
                     except np.linalg.LinAlgError:  # unsolvable equations
@@ -165,7 +171,8 @@ class Game(object):
         self.num_players = len(self.players_name)
         self.shape = tokens[brackets[2] + 1:brackets[3]]
         self.shape = map(int, self.shape)
-        payoffs_flat = tokens[brackets[3] + 1:brackets[3] + 1 + reduce(mul, self.shape) * self.num_players]
+        payoffs_flat = tokens[brackets[3] + 1:brackets[3] + 1 +
+                              reduce(mul, self.shape) * self.num_players]
         payoffs_flat = map(float, payoffs_flat)
         complete_shape = self.shape[:]
         complete_shape.append(self.num_players)
