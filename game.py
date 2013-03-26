@@ -6,10 +6,9 @@ import numpy as np
 import exceptions
 import shlex
 import itertools
+#import ipdb
 from operator import mul
 
-
-# TOKENIZER = re.compile(r"[ \n]+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 
 class Game(object):
@@ -84,16 +83,17 @@ class Game(object):
         col_index[list(combination[1])] = True
         view = self.array[row_index][:, col_index]
         numbers = []
-        last = [1] * num_supports
-        last.append(0)
+        last_row = np.ones((1, num_supports + 1))
+        last_row[0][-1] = 0
+        last_column = np.ones((num_supports, 1)) * -1
         for index, payoff in enumerate(np.nditer(view, order=order[player],
                                                  flags=['refs_ok'])):
             numbers.append(payoff.flat[0][(player + 1) % 2])
-            if index % num_supports == num_supports - 1:
-                numbers.append(-1.0)
-        numbers.extend(last)
-        return np.array(numbers, dtype=float).reshape(num_supports + 1,
-                                                      num_supports + 1)
+        numbers = np.array(numbers, dtype=float).reshape(num_supports,
+                                                      num_supports)
+        numbers = np.hstack((numbers, last_column))
+        numbers = np.vstack((numbers, last_row))
+        return numbers
 
     def support_enumeration(self):
         """
@@ -163,11 +163,12 @@ class Game(object):
         if tokens[:3] != preface:
             raise exceptions.FormatError(
                 "Input string is not valid nfg format")
+        self.name = tokens[3]
         brackets = [i for i, x in enumerate(tokens) if x == "{" or x == "}"]
         if len(brackets) != 4:
             raise exceptions.FormatError(
                 "Input string is not valid nfg format")
-        self.players_name = tokens[brackets[0] + 1:brackets[1]]
+        self.players_name = tokens[brackets[0] + 1 :brackets[1]]
         self.num_players = len(self.players_name)
         self.shape = tokens[brackets[2] + 1:brackets[3]]
         self.shape = map(int, self.shape)
@@ -200,8 +201,7 @@ class Game(object):
         result += " ".join(map(str, self.shape))
         result += " }\n\n"
         for payoff in np.nditer(self.array, order="F", flags=['refs_ok']):
-            for value in payoff.flat:
-                for i in value:
+            for i in payoff.flat[0]:
                     result += str(i) + " "
         return result
 
