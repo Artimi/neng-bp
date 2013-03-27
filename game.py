@@ -6,7 +6,7 @@ import numpy as np
 import exceptions
 import shlex
 import itertools
-import ipdb
+#import ipdb
 from operator import mul
 
 
@@ -159,7 +159,8 @@ class Game(object):
                 v += z ** 2
         return v
 
-    def payoff(self, strategyProfile, player_pure_strategy=None):
+    def payoff(self, strategyProfile,
+               player_pure_strategy=None, normalize=True):
         """
         Function to compute payoff of given strategyProfile
         @param strategyProfile list of probability distributions
@@ -175,8 +176,10 @@ class Game(object):
             if player_pure_strategy and player == player_pure_strategy[0]:
                 strategy = np.zeros_like(strategy)
                 strategy[player_pure_strategy[1]] = 1.0
-            if np.sum(strategy) != 1.0: # here should be some tolerance
-                raise ValueError("every mixed strategy has to sum to one")
+            if normalize:
+                strategy = self.normalize(strategy)
+            #if np.sum(strategy) != 1.0: # here should be some tolerance
+                #raise ValueError("every mixed strategy has to sum to one")
             deepStrategyProfile.append(strategy)
             acc += i
         it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
@@ -187,6 +190,14 @@ class Game(object):
             result += product * np.array(self.array[it.multi_index])
             it.iternext()
         return result
+
+    def normalize(self, strategy):
+        """
+        Normalize strategy_profile to asure constraints:
+        for all strategies sum p(si) = 1
+        p(si) >= 0.0
+        """
+        return np.abs(strategy) / np.sum(strategy)
 
     def findEquilibria(self):
         """
@@ -273,16 +284,11 @@ if __name__ == '__main__':
         game_str = f.read()
     g = Game(game_str)
     #g.payoff([0.5, 0.5, 0, 0.5, 0.5], player_pure_strategy=(0,1))
-    print g.v_function([1.0, 0.0, 0.0, 0.5, 0.5])
+    print g.payoff([1.0, 0.0, 0.0, 0,5, 0.5])
+    #print g.v_function([1.0, 0.0, 0.0, 0.5, 0.5])
     #l = g.findEquilibria()
     #print l
     #for i in l:
         #s = ",".join(map(str, i))
         #print "NE," + s
-    # print g.getPNE()
-    # print "BRS: ", g.brs
-    # g.getPNE()
-    # result = g.findEquilibria()
-    # print result
-    # for PNE in result:
-        # print "NE," +  ",".join(map(str,g.tupleToStrategyProfile(PNE))
+    #print g.normalize([4.0,3.0,2.0])
