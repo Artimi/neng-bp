@@ -142,20 +142,41 @@ class Game(object):
                 result.append(tuple(mne))
         return result
 
-    def v_function(self, strategyProfile):
-        return None
+    def v_function(self, strategy_profile):
+        """
+        xij(p) = ui(si, p_i)
+        yij(p) = xij(p) - ui(p)
+        zij(p) = max[yij(p), 0]
+        v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2
+        """
+        v = 0.0
+        for player in range(self.num_players):
+            for pure_strategy in range(self.shape[player]):
+                x = self.payoff(strategy_profile,
+                                player_pure_strategy=(player, pure_strategy))[player]
+                y = x - self.payoff(strategy_profile)[player]
+                z = max(y, 0.0)
+                v += z ** 2
+        return v
 
-    def payoff(self, strategyProfile):
+    def payoff(self, strategyProfile, player_pure_strategy=None):
         """
         Function to compute payoff of given strategyProfile
         @param strategyProfile list of probability distributions
+        @param player_pure_strategy tuple (player, strategy) to replace
+        current player strategy with pure strategy
         @return np.array of payoffs for each player
         """
         deepStrategyProfile = []
         result = np.zeros(self.num_players)
         acc = 0
-        for i in self.shape:
+        for player, i in enumerate(self.shape):
             strategy = np.array(strategyProfile[acc:acc+i])
+            if player_pure_strategy and player == player_pure_strategy[0]:
+                strategy = np.zeros_like(strategy)
+                strategy[player_pure_strategy[1]] = 1.0
+            if np.sum(strategy) != 1.0: # here should be some tolerance
+                raise ValueError("every mixed strategy has to sum to one")
             deepStrategyProfile.append(strategy)
             acc += i
         it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
@@ -251,8 +272,10 @@ if __name__ == '__main__':
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
-    g.payoff([0.5, 0.5, 0, 0.5, 0.5])
+    #g.payoff([0.5, 0.5, 0, 0.5, 0.5], player_pure_strategy=(0,1))
+    print g.v_function([1.0, 0.0, 0.0, 0.5, 0.5])
     #l = g.findEquilibria()
+    #print l
     #for i in l:
         #s = ",".join(map(str, i))
         #print "NE," + s
