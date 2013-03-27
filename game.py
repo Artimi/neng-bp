@@ -6,9 +6,8 @@ import numpy as np
 import exceptions
 import shlex
 import itertools
-#import ipdb
+import ipdb
 from operator import mul
-
 
 
 class Game(object):
@@ -90,7 +89,7 @@ class Game(object):
                                                  flags=['refs_ok'])):
             numbers.append(payoff.flat[0][(player + 1) % 2])
         numbers = np.array(numbers, dtype=float).reshape(num_supports,
-                                                      num_supports)
+                                                         num_supports)
         numbers = np.hstack((numbers, last_column))
         numbers = np.vstack((numbers, last_row))
         return numbers
@@ -143,6 +142,31 @@ class Game(object):
                 result.append(tuple(mne))
         return result
 
+    def v_function(self, strategyProfile):
+        return None
+
+    def payoff(self, strategyProfile):
+        """
+        Function to compute payoff of given strategyProfile
+        @param strategyProfile list of probability distributions
+        @return np.array of payoffs for each player
+        """
+        deepStrategyProfile = []
+        result = np.zeros(self.num_players)
+        acc = 0
+        for i in self.shape:
+            strategy = np.array(strategyProfile[acc:acc+i])
+            deepStrategyProfile.append(strategy)
+            acc += i
+        it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
+        while not it.finished:
+            product = 1.0
+            for player, strategy in enumerate(it.multi_index):
+                product *= deepStrategyProfile[player][strategy]
+            result += product * np.array(self.array[it.multi_index])
+            it.iternext()
+        return result
+
     def findEquilibria(self):
         """
         Find all equilibria
@@ -168,7 +192,7 @@ class Game(object):
         if len(brackets) != 4:
             raise exceptions.FormatError(
                 "Input string is not valid nfg format")
-        self.players_name = tokens[brackets[0] + 1 :brackets[1]]
+        self.players_name = tokens[brackets[0] + 1:brackets[1]]
         self.num_players = len(self.players_name)
         self.shape = tokens[brackets[2] + 1:brackets[3]]
         self.shape = map(int, self.shape)
@@ -227,10 +251,11 @@ if __name__ == '__main__':
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
-    l = g.findEquilibria()
-    for i in l:
-        s = ",".join(map(str, i))
-        print "NE," + s
+    g.payoff([0.5, 0.5, 0, 0.5, 0.5])
+    #l = g.findEquilibria()
+    #for i in l:
+        #s = ",".join(map(str, i))
+        #print "NE," + s
     # print g.getPNE()
     # print "BRS: ", g.brs
     # g.getPNE()
