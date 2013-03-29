@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+from __future__ import division
 import numpy as np
 import exceptions
 import shlex
 import itertools
 #import ipdb
 from operator import mul
+#import cmaes
 
 
 class Game(object):
@@ -142,6 +143,79 @@ class Game(object):
                 result.append(tuple(mne))
         return result
 
+    def cmaes(self, strfitnessfct, N):
+        """
+        Function minimization via Covariance Matrix Adaptation Evolution
+        Strategy
+        """
+        # input parameters
+        xmean = np.random.rand(N)
+        sigma = 0.5
+        stopfitness = 1e-18
+        stopeval = 1e4 * N ** 2
+        # strategy parameter setting: selection
+        lamda = int(4 + 3 * np.log(N))
+        mu = lamda / 2
+        weights = np.array([np.log(mu + 0.5) - np.log(i) for i in range(1, int(mu) + 1)])
+        mu = int(mu)
+        weights = weights / np.sum(weights)
+        mueff = 1 / np.sum(weights ** 2)
+        # strategy parameter setting: adaptation
+        cc = (4 + mueff / N) / (N + 4 + 2 * mueff / N)
+        cs = (mueff + 2) / (N + mueff + 5)
+        c1 = 2 / ((N + 1.3) ** 2 + mueff)
+        cmu = min(1 - c1, 2 * (mueff - 2 + 1 / mueff) / ((N + 2) ** 2 + mueff))
+        damps = 1 + 2 * max(0, np.sqrt((mueff - 1) / (N + 1)) - 1) + cs
+        # initialize dynamic (internal) strategy parameters and constants
+        pc = np.zeros((1, N))
+        ps = np.zeros((1, N))
+        B = np.eye(N)
+        D = np.eye(N)
+        C = np.identity(N)
+        eigenval = 0
+        chiN = N ** 0.5 * (1 - 1 / (4 * N) + 1 / (21 * N ** 2))
+        # generation loop
+        self.counteval = 0
+        arx = np.empty([N, lamda])
+        arz = np.empty([N, lamda])
+        arfitness = np.empty(lamda)
+        while self.counteval < stopeval:
+            for k in range(lamda):
+                arz[:, k] = np.random.randn(N)
+                # arx[:, k] = np.random.multivariate_normal(xmean, sigma ** 2 * C)
+                arx[:, k] = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
+                arfitness[k] = strfitnessfct(arx[:, k])
+                self.counteval += 1
+            # sort by fitness and compute weighted mean into xmean
+            arindex = np.argsort(arfitness)
+            arfitness = arfitness[arindex]
+            # xold = xmean
+            xmean = np.dot(arx[:, arindex[:mu]], weights)
+            zmean = np.dot(arz[:, arindex[:mu]], weights)
+            ps = np.dot((1 - cs), ps) + np.dot((np.sqrt(cs * (2 - cs) * mueff)), np.dot(B, zmean))
+            hsig = np.linalg.norm(ps) / np.sqrt(1 - (1 - cs) ** (2 * self.counteval / lamda)) / chiN < 1.4 + 2 / (N + 1)
+            pc = np.dot((1 - cc), pc) + np.dot(np.dot(hsig, np.sqrt(cc * (2 - cc) * mueff)), np.dot(np.dot(B, D), zmean))
+            # adapt covariance matrix C
+            C = np.dot((1 - c1 - cmu), C) \
+                + np.dot(c1, ((pc * pc.T)
+                + np.dot((1 - hsig) * cc * (2 - cc), C))) \
+                + np.dot(cmu,
+                         np.dot(np.dot(np.dot(np.dot(B, D), arz[:, arindex[:mu]]),
+                                np.diag(weights)), (np.dot(np.dot(B, D), arz[:, arindex[:mu]])).T))
+            # adapt step size sigma
+            sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(ps) / chiN - 1))
+            # diagonalization
+            if self.counteval - eigenval > lamda / (c1 + cmu) / N / 10:
+                eigenval = self.counteval
+                C = np.triu(C) + np.triu(C, 1).T
+                #ipdb.set_trace()
+                D, B = np.linalg.eig(C)
+                D = np.diag(np.sqrt(D))
+                # invsqrtC = np.dot(np.dot(B, np.diag(D ** -1)), B.T)
+            if arfitness[0] <= stopfitness:
+                break
+        return arx[:, arindex[0]]
+
     def v_function(self, strategy_profile):
         """
         xij(p) = ui(si, p_i)
@@ -151,10 +225,11 @@ class Game(object):
         """
         v = 0.0
         for player in range(self.num_players):
+            u = self.payoff(strategy_profile)[player]
             for pure_strategy in range(self.shape[player]):
                 x = self.payoff(strategy_profile,
                                 player_pure_strategy=(player, pure_strategy))[player]
-                y = x - self.payoff(strategy_profile)[player]
+                y = x - u
                 z = max(y, 0.0)
                 v += z ** 2
         return v
@@ -199,15 +274,24 @@ class Game(object):
         """
         return np.abs(strategy) / np.sum(strategy)
 
-    def findEquilibria(self):
+    def normalize_strategy_profile(self, strategy_profile):
+        result = []
+        acc = 0
+        for i in self.shape:
+            strategy = np.array(strategy_profile[acc:acc+i])
+            result.extend(self.normalize(strategy))
+            acc += i
+        return result
+
+    def findEquilibria(self, method='cmaes'):
         """
         Find all equilibria
         @return set of PNE and MNE
         """
-        if self.num_players == 2:
+        if self.num_players == 2 and method == 'support_enumeration':
             return self.support_enumeration()
-        else:
-            raise NotImplementedError()
+        elif method == 'cmaes':
+            return self.normalize_strategy_profile(self.cmaes(g.v_function, np.sum(self.shape)))
 
     def read(self, nfg):
         """
@@ -283,12 +367,8 @@ if __name__ == '__main__':
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
-    #g.payoff([0.5, 0.5, 0, 0.5, 0.5], player_pure_strategy=(0,1))
-    print g.payoff([1.0, 0.0, 0.0, 0,5, 0.5])
-    #print g.v_function([1.0, 0.0, 0.0, 0.5, 0.5])
-    #l = g.findEquilibria()
-    #print l
-    #for i in l:
-        #s = ",".join(map(str, i))
-        #print "NE," + s
-    #print g.normalize([4.0,3.0,2.0])
+    #result = g.cmaes(g.v_function, np.sum(g.shape))
+    result = g.findEquilibria()
+    print "NE: ", result
+    print "payoff: ", g.payoff(result)
+    print "evaluation: ", g.counteval
