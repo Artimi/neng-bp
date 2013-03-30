@@ -8,6 +8,7 @@ import shlex
 import itertools
 import ipdb
 from operator import mul
+import scipy.optimize
 #import cmaes
 
 
@@ -299,6 +300,7 @@ class Game(object):
         elif method == 'cmaes':
             #return self.normalize_strategy_profile(self.cmaes(self.v_function, np.sum(self.shape)))
             return self.cmaes(self.v_function, np.sum(self.shape))
+            #return scipy.optimize.fmin(self.v_function, np.zeros(np.sum(self.shape)))
 
     def read(self, nfg):
         """
@@ -312,21 +314,46 @@ class Game(object):
                 "Input string is not valid nfg format")
         self.name = tokens[3]
         brackets = [i for i, x in enumerate(tokens) if x == "{" or x == "}"]
-        if len(brackets) != 4:
-            raise exceptions.FormatError(
-                "Input string is not valid nfg format")
-        self.players_name = tokens[brackets[0] + 1:brackets[1]]
-        self.num_players = len(self.players_name)
-        self.shape = tokens[brackets[2] + 1:brackets[3]]
-        self.shape = map(int, self.shape)
-        payoffs_flat = tokens[brackets[3] + 1:brackets[3] + 1 +
-                              reduce(mul, self.shape) * self.num_players]
-        payoffs_flat = map(float, payoffs_flat)
-        complete_shape = self.shape[:]
-        complete_shape.append(self.num_players)
-        payoffs = []
-        for i in range(0, len(payoffs_flat), self.num_players):
-            payoffs.append(tuple(payoffs_flat[i:i + self.num_players]))
+        if len(brackets) == 4:
+            # payoff version
+            #raise exceptions.FormatError(
+                #"Input string is not valid nfg format")
+            self.players_name = tokens[brackets[0] + 1:brackets[1]]
+            self.num_players = len(self.players_name)
+            self.shape = tokens[brackets[2] + 1:brackets[3]]
+            self.shape = map(int, self.shape)
+            payoffs_flat = tokens[brackets[3] + 1:brackets[3] + 1 +
+                                  reduce(mul, self.shape) * self.num_players]
+            payoffs_flat = map(float, payoffs_flat)
+            payoffs = []
+            for i in range(0, len(payoffs_flat), self.num_players):
+                payoffs.append(tuple(payoffs_flat[i:i + self.num_players]))
+        else:
+            # outcome verion
+            brackets_pairs = []
+            for i in brackets:
+                if tokens[i] == "{":
+                    brackets_pairs.append([i])
+                if tokens[i] == "}":
+                    pair = -1
+                    while len(brackets_pairs[pair]) != 1:
+                        pair -= 1
+                    brackets_pairs[pair].append(i)
+            self.players_name = tokens[brackets[0] + 1:brackets[1]]
+            self.num_players = len(self.players_name)
+            i = 2
+            self.shape = []
+            while brackets_pairs[i][1] < brackets_pairs[1][1]:
+                self.shape.append(brackets_pairs[i][1] - brackets_pairs[i][0] - 1)
+                i += 1
+            after_brackets = brackets_pairs[i][1] + 1 
+            i += 1
+            outcomes = []
+            outcomes.append([0] * self.num_players)
+            for i in range(i, len(brackets_pairs)):
+                outcomes.append(tuple(map(lambda x: float(x.translate(None, ',')),
+                               tokens[brackets_pairs[i][0] + 2:brackets_pairs[i][1]])))
+            payoffs = [outcomes[out] for out in map(int, tokens[after_brackets:])]
         self.array = np.ndarray(self.shape, dtype=tuple, order="F")
         it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
         index = 0
@@ -378,4 +405,4 @@ if __name__ == '__main__':
     result = g.findEquilibria()
     print "NE: ", result
     print "payoff: ", g.payoff(result)
-    print "evaluation: ", g.counteval
+    #print "evaluation: ", g.counteval
