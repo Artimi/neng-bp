@@ -6,7 +6,7 @@ import numpy as np
 import exceptions
 import shlex
 import itertools
-#import ipdb
+import ipdb
 from operator import mul
 #import cmaes
 
@@ -151,7 +151,7 @@ class Game(object):
         # input parameters
         xmean = np.random.rand(N)
         sigma = 0.5
-        stopfitness = 1e-18
+        stopfitness = 1e-20
         stopeval = 1e4 * N ** 2
         # strategy parameter setting: selection
         lamda = int(4 + 3 * np.log(N))
@@ -208,7 +208,6 @@ class Game(object):
             if self.counteval - eigenval > lamda / (c1 + cmu) / N / 10:
                 eigenval = self.counteval
                 C = np.triu(C) + np.triu(C, 1).T
-                #ipdb.set_trace()
                 D, B = np.linalg.eig(C)
                 D = np.diag(np.sqrt(D))
                 # invsqrtC = np.dot(np.dot(B, np.diag(D ** -1)), B.T)
@@ -224,18 +223,24 @@ class Game(object):
         v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2
         """
         v = 0.0
+        u = self.payoff(strategy_profile)
+        acc = 0
+        negative_penalty = np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
+        v += negative_penalty
         for player in range(self.num_players):
-            u = self.payoff(strategy_profile)[player]
+            one_penalty = (1 - np.sum(np.abs(strategy_profile[acc:acc+self.shape[player]]))) ** 2
+            acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
                 x = self.payoff(strategy_profile,
                                 player_pure_strategy=(player, pure_strategy))[player]
-                y = x - u
+                y = x - u[player]
                 z = max(y, 0.0)
                 v += z ** 2
+            v += one_penalty
         return v
 
     def payoff(self, strategyProfile,
-               player_pure_strategy=None, normalize=True):
+               player_pure_strategy=None, normalize=False):
         """
         Function to compute payoff of given strategyProfile
         @param strategyProfile list of probability distributions
@@ -272,7 +277,7 @@ class Game(object):
         for all strategies sum p(si) = 1
         p(si) >= 0.0
         """
-        return np.abs(strategy) / np.sum(strategy)
+        return np.abs(strategy) / np.sum(np.abs(strategy))
 
     def normalize_strategy_profile(self, strategy_profile):
         result = []
@@ -291,7 +296,8 @@ class Game(object):
         if self.num_players == 2 and method == 'support_enumeration':
             return self.support_enumeration()
         elif method == 'cmaes':
-            return self.normalize_strategy_profile(self.cmaes(g.v_function, np.sum(self.shape)))
+            #return self.normalize_strategy_profile(self.cmaes(self.v_function, np.sum(self.shape)))
+            return self.cmaes(self.v_function, np.sum(self.shape))
 
     def read(self, nfg):
         """
