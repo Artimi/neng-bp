@@ -16,6 +16,7 @@ class Game(object):
     def __init__(self, nfg=""):
         if nfg != "":
             self.read(nfg)
+            self.players_zeros = np.zeros(self.num_players)
 
     def bestResponse(self, player, strategy):
         """
@@ -168,7 +169,7 @@ class Game(object):
         damps = 1 + 2 * max(0, np.sqrt((mueff - 1) / (N + 1)) - 1) + cs
         # initialize dynamic (internal) strategy parameters and constants
         pc = np.zeros((1, N))
-        ps = np.zeros((1, N))
+        ps = np.zeros_like(pc)
         B = np.eye(N)
         D = np.eye(N)
         C = np.identity(N)
@@ -177,7 +178,7 @@ class Game(object):
         # generation loop
         self.counteval = 0
         arx = np.empty([N, lamda])
-        arz = np.empty([N, lamda])
+        arz = np.empty_like(arx)
         arfitness = np.empty(lamda)
         while self.counteval < stopeval:
             for k in range(lamda):
@@ -249,7 +250,7 @@ class Game(object):
         @return np.array of payoffs for each player
         """
         deepStrategyProfile = []
-        result = np.zeros(self.num_players)
+        result = np.zeros_like(self.players_zeros)
         acc = 0
         for player, i in enumerate(self.shape):
             strategy = np.array(strategyProfile[acc:acc+i])
