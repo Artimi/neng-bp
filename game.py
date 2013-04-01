@@ -13,9 +13,9 @@ import sys
 
 
 class Game(object):
-    METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 
-                            'Anneal', 'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP',
-                            'cmaes', 'support_enumeration', 'pne']
+    METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
+               'Anneal', 'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP',
+               'cmaes', 'support_enumeration', 'pne']
 # not Newton-CG there is needed jacobian of function
 
     def __init__(self, nfg=""):
@@ -189,14 +189,12 @@ class Game(object):
         while counteval < stopeval:
             for k in range(lamda):
                 arz[:, k] = np.random.randn(N)
-                # arx[:, k] = np.random.multivariate_normal(xmean, sigma ** 2 * C)
                 arx[:, k] = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
                 arfitness[k] = strfitnessfct(arx[:, k])
                 counteval += 1
             # sort by fitness and compute weighted mean into xmean
             arindex = np.argsort(arfitness)
             arfitness = arfitness[arindex]
-            # xold = xmean
             xmean = np.dot(arx[:, arindex[:mu]], weights)
             zmean = np.dot(arz[:, arindex[:mu]], weights)
             ps = np.dot((1 - cs), ps) + np.dot((np.sqrt(cs * (2 - cs) * mueff)), np.dot(B, zmean))
@@ -213,11 +211,10 @@ class Game(object):
             sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(ps) / chiN - 1))
             # diagonalization
             if counteval - eigenval > lamda / (c1 + cmu) / N / 10:
-                eigenval = counteval 
+                eigenval = counteval
                 C = np.triu(C) + np.triu(C, 1).T
                 D, B = np.linalg.eig(C)
                 D = np.diag(np.sqrt(D))
-                # invsqrtC = np.dot(np.dot(B, np.diag(D ** -1)), B.T)
             #sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<70}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
                 #iteration=iteration, best=map(lambda x: round(x, 3), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
             #if iteration % 20 == 0:
@@ -238,7 +235,7 @@ class Game(object):
         v = 0.0
         u = self.payoff(strategy_profile)
         acc = 0
-        negative_penalty = np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile)) 
+        negative_penalty = np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
         v += negative_penalty
         for player in range(self.num_players):
             one_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
@@ -271,8 +268,6 @@ class Game(object):
                 strategy[player_pure_strategy[1]] = 1.0
             if normalize:
                 strategy = self.normalize(strategy)
-            #if np.sum(strategy) != 1.0: # here should be some tolerance
-                #raise ValueError("every mixed strategy has to sum to one")
             deepStrategyProfile.append(strategy)
             acc += i
         it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
@@ -312,7 +307,7 @@ class Game(object):
             return self.support_enumeration()
         elif method == 'cmaes':
             return self.cmaes(self.v_function, self.sum_shape)
-        elif method in self.METHODS: 
+        elif method in self.METHODS:
             result = scipy.optimize.minimize(self.v_function,
                                              np.zeros(self.sum_shape),
                                              method=method)
@@ -336,8 +331,6 @@ class Game(object):
         brackets = [i for i, x in enumerate(tokens) if x == "{" or x == "}"]
         if len(brackets) == 4:
             # payoff version
-            #raise exceptions.FormatError(
-                #"Input string is not valid nfg format")
             self.players = tokens[brackets[0] + 1:brackets[1]]
             self.num_players = len(self.players)
             self.shape = tokens[brackets[2] + 1:brackets[3]]
@@ -366,13 +359,12 @@ class Game(object):
             while brackets_pairs[i][1] < brackets_pairs[1][1]:
                 self.shape.append(brackets_pairs[i][1] - brackets_pairs[i][0] - 1)
                 i += 1
-            after_brackets = brackets_pairs[i][1] + 1 
+            after_brackets = brackets_pairs[i][1] + 1
             i += 1
             outcomes = []
             outcomes.append([0] * self.num_players)
             for i in range(i, len(brackets_pairs)):
-                outcomes.append(map(lambda x: float(x.translate(None, ',')),
-                               tokens[brackets_pairs[i][0] + 2:brackets_pairs[i][1]]))
+                outcomes.append(map(lambda x: float(x.translate(None, ',')), tokens[brackets_pairs[i][0] + 2:brackets_pairs[i][1]]))
             payoffs = [outcomes[out] for out in map(int, tokens[after_brackets:])]
         self.sum_shape = np.sum(self.shape)
         self.array = np.ndarray(self.shape, dtype=tuple, order="F")
