@@ -224,6 +224,9 @@ class Game(object):
                 if verbose:
                     sys.stdout.write('\n')
                 break
+            # Escape flat fitness, maybe restart?
+            if np.abs(arfitness[0] - arfitness[np.ceil(0.7 * lamda)]) <= stopfitness:
+                sigma = sigma * np.exp(0.2 + cs/damps)
         result = scipy.optimize.Result()
         result['x'] = arx[:, arindex[0]]
         result['fun'] = arfitness[0]
