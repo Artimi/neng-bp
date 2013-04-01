@@ -34,11 +34,10 @@ class Game(object):
         strategy = list(strategy)
         result = set()
         strategy[player] = slice(None)  # all possible strategies for 'player'
-        payoffs = self.array[strategy].tolist()
-        max_payoff = max(payoffs, key=lambda x: x[player])[player]
+        payoffs = self.array[player][strategy]
+        max_payoff = np.max(payoffs)
         # numbers of best responses strategies
-        brs = [index for index, br in enumerate(payoffs)
-               if br[player] == max_payoff]
+        brs = [index for index, br in enumerate(payoffs) if br == max_payoff]
         for br in brs:
             s = strategy[:]
             s[player] = br
@@ -87,14 +86,14 @@ class Game(object):
         order = ['F', 'C']
         row_index[list(combination[0])] = True
         col_index[list(combination[1])] = True
-        view = self.array[row_index][:, col_index]
+        view = self.array[(player + 1) % 2][row_index][:, col_index]
         numbers = []
         last_row = np.ones((1, num_supports + 1))
         last_row[0][-1] = 0
         last_column = np.ones((num_supports, 1)) * -1
         for index, payoff in enumerate(np.nditer(view, order=order[player],
                                                  flags=['refs_ok'])):
-            numbers.append(payoff.flat[0][(player + 1) % 2])
+            numbers.append(payoff.flat[0])
         numbers = np.array(numbers, dtype=float).reshape(num_supports,
                                                          num_supports)
         numbers = np.hstack((numbers, last_column))
@@ -247,24 +246,23 @@ class Game(object):
         v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2
         """
         v = 0.0
-        u = self.payoff(strategy_profile)
         acc = 0
         negative_penalty = np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
         v += negative_penalty
         for player in range(self.num_players):
+            u = self.payoff(strategy_profile, player)
             one_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
             acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
-                x = self.payoff(strategy_profile,
-                                player_pure_strategy=(player, pure_strategy))[player]
-                y = x - u[player]
+                x = self.payoff(strategy_profile, player, player_pure_strategy=(player, pure_strategy))
+                y = x - u
+                #ipdb.set_trace()
                 z = max(y, 0.0)
                 v += z ** 2
             v += one_penalty
         return v
 
-    def payoff(self, strategyProfile,
-               player_pure_strategy=None, normalize=False):
+    def payoff(self, strategyProfile, player, player_pure_strategy=None, normalize=False):
         """
         Function to compute payoff of given strategyProfile
         @param strategyProfile list of probability distributions
@@ -273,7 +271,7 @@ class Game(object):
         @return np.array of payoffs for each player
         """
         deepStrategyProfile = []
-        result = np.zeros_like(self.players_zeros)
+        result = 0.0
         acc = 0
         for player, i in enumerate(self.shape):
             strategy = np.array(strategyProfile[acc:acc+i])
@@ -284,12 +282,12 @@ class Game(object):
                 strategy = self.normalize(strategy)
             deepStrategyProfile.append(strategy)
             acc += i
-        it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
+        it = np.nditer(self.array[player], flags=['multi_index', 'refs_ok'])
         while not it.finished:
             product = 1.0
             for player, strategy in enumerate(it.multi_index):
                 product *= deepStrategyProfile[player][strategy]
-            result += product * np.array(self.array[it.multi_index])
+            result += product * self.array[player][it.multi_index]
             it.iternext()
         return result
 
@@ -380,11 +378,14 @@ class Game(object):
                 outcomes.append(map(lambda x: float(x.translate(None, ',')), tokens[brackets_pairs[i][0] + 2:brackets_pairs[i][1]]))
             payoffs = [outcomes[out] for out in map(int, tokens[after_brackets:])]
         self.sum_shape = np.sum(self.shape)
-        self.array = np.ndarray(self.shape, dtype=tuple, order="F")
-        it = np.nditer(self.array, flags=['multi_index', 'refs_ok'])
+        self.array = []
+        for player in range(self.num_players):
+            self.array.append(np.ndarray(self.shape, dtype=float, order="F"))
+        it = np.nditer(self.array[0], flags=['multi_index', 'refs_ok'])
         index = 0
         while not it.finished:
-            self.array[it.multi_index] = payoffs[index]
+            for player in range(self.num_players):
+                self.array[player][it.multi_index] = payoffs[index][player]
             it.iternext()
             index += 1
 
@@ -400,7 +401,7 @@ class Game(object):
         result += " } { "
         result += " ".join(map(str, self.shape))
         result += " }\n\n"
-        for payoff in np.nditer(self.array, order="F", flags=['refs_ok']):
+        for payoff in np.nditer(self.array[0], order="F", flags=['refs_ok']):
             for i in payoff.flat[0]:
                     result += str(i) + " "
         return result
