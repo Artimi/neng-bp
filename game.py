@@ -149,7 +149,7 @@ class Game(object):
                 result.append(mne)
         return result
 
-    def cmaes(self, strfitnessfct, N):
+    def cmaes(self, strfitnessfct, N, verbose=False):
         """
         Function minimization via Covariance Matrix Adaptation Evolution
         Strategy
@@ -158,7 +158,7 @@ class Game(object):
         xmean = np.random.rand(N)
         sigma = 0.5
         stopfitness = 1e-10
-        stopeval = 1e4 * N ** 2
+        stopeval = 1e3 * N ** 2
         # strategy parameter setting: selection
         lamda = int(4 + 3 * np.log(N))
         mu = lamda / 2
@@ -215,15 +215,29 @@ class Game(object):
                 C = np.triu(C) + np.triu(C, 1).T
                 D, B = np.linalg.eig(C)
                 D = np.diag(np.sqrt(D))
-            #sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<70}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
-                #iteration=iteration, best=map(lambda x: round(x, 3), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
-            #if iteration % 20 == 0:
-                #sys.stdout.write('\n')
+            if verbose:
+                sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<70}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
+                    iteration=iteration, best=map(lambda x: round(x, 3), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
+                if iteration % 20 == 0:
+                    sys.stdout.write('\n')
             iteration += 1
             if arfitness[0] <= stopfitness:
-                #sys.stdout.write('\n')
+                if verbose:
+                    sys.stdout.write('\n')
                 break
-        return arx[:, arindex[0]]
+        result = scipy.optimize.Result()
+        result['x'] = arx[:, arindex[0]]
+        result['fun'] = arfitness[0]
+        result['nfev'] = counteval
+        if counteval < stopeval:
+            result['success'] = True
+            result['status'] = 0
+            result['message'] = "Optimization terminated successfully."
+        else:
+            result['success'] = False
+            result['status'] = 1
+            result['message'] = 'Something went wrong.'
+        return result
 
     def v_function(self, strategy_profile):
         """
@@ -296,7 +310,7 @@ class Game(object):
             acc += i
         return result
 
-    def findEquilibria(self, method='cmaes'):
+    def findEquilibria(self, method='cmaes', verbose=False):
         """
         Find all equilibria
         @return set of PNE and MNE
@@ -306,16 +320,15 @@ class Game(object):
         elif self.num_players == 2 and method == 'support_enumeration':
             return self.support_enumeration()
         elif method == 'cmaes':
-            return self.cmaes(self.v_function, self.sum_shape)
+            result = self.cmaes(self.v_function, self.sum_shape, verbose=verbose)
         elif method in self.METHODS:
-            result = scipy.optimize.minimize(self.v_function,
-                                             np.zeros(self.sum_shape),
-                                             method=method)
-            #print result
-            if result.success:
-                return result.x
-            else:
-                return None
+            result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
+        if verbose:
+            print result
+        if result.success:
+            return result.x
+        else:
+            return None
 
     def read(self, nfg):
         """
@@ -411,11 +424,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
+    parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
-    result = g.findEquilibria(args.method)
+    result = g.findEquilibria(args.method, args.verbose)
     if result is not None:
         print "NE: ", np.round(np.abs(result), decimals=4)
     else:
