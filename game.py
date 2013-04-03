@@ -257,18 +257,19 @@ class Game(object):
             one_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
             acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
-                x = self.payoff(strategy_profile, player, player_pure_strategy=(player, pure_strategy))
+                #ipdb.set_trace()
+                x = self.payoff(strategy_profile, player, pure_strategy)
                 z = x - u
                 g = max(z, 0.0)
                 v += g ** 2
             v += one_penalty
         return v
 
-    def payoff(self, strategy_profile, player, player_pure_strategy=None, normalize=False):
+    def payoff(self, strategy_profile, pplayer, pure_strategy=None, normalize=False):
         """
         Function to compute payoff of given strategy_profile
         @param strategy_profile list of probability distributions
-        @param player_pure_strategy tuple (player, strategy) to replace
+        @param pure_strategy tuple (player, strategy) to replace
         current player strategy with pure strategy
         @return np.array of payoffs for each player
         """
@@ -277,19 +278,19 @@ class Game(object):
         acc = 0
         for player, i in enumerate(self.shape):
             strategy = np.array(strategy_profile[acc:acc+i])
-            if player_pure_strategy and player == player_pure_strategy[0]:
+            if pure_strategy is not None and player == pplayer:
                 strategy = np.zeros_like(strategy)
-                strategy[player_pure_strategy[1]] = 1.0
+                strategy[pure_strategy] = 1.0
             if normalize:
                 strategy = self.normalize(strategy)
             deep_strategy_profile.append(strategy)
             acc += i
-        it = np.nditer(self.array[player], flags=['multi_index', 'refs_ok'])
+        it = np.nditer(self.array[pplayer], flags=['multi_index', 'refs_ok'])
         while not it.finished:
             product = 1.0
             for player, strategy in enumerate(it.multi_index):
                 product *= deep_strategy_profile[player][strategy]
-            result += product * self.array[player][it.multi_index]
+            result += product * self.array[pplayer][it.multi_index]
             it.iternext()
         return result
 
