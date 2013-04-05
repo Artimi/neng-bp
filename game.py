@@ -342,8 +342,11 @@ class Game(object):
             result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
         if self.verbose:
             print result
+        self.degenerated = self.isDegenerated()
         if result.success:
-            return result.x
+            r = []
+            r.append(result.x)
+            return r
         else:
             return None
 
@@ -438,6 +441,22 @@ class Game(object):
             accumulator += i
         return result
 
+    def printNE(self, nes, payoff=False, warning=True):
+        """
+        Print Nash equilibria with with some statistics
+        """
+        if warning and self.degenerated:
+            sys.stderr.write("WARNING: game is degenerated.\n")
+        for ne in nes:
+            probabilities = ["%.3f" % abs(p) for p in ne]
+            print "NE", ", ".join(probabilities)
+            if payoff:
+                s = []
+                for player in range(self.num_players):
+                    s.append("{0}: {1:.3f}".format(self.players[player], self.payoff(ne, player)))
+                print "Payoff", ", ".join(s)
+
+
 
 if __name__ == '__main__':
     import argparse
@@ -445,17 +464,16 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-p', '--payoff', action='store_true', default=False)
+    parser.add_argument('-w', '--warning', action='store_true', default=True)
     args = parser.parse_args()
+
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str, args.verbose)
     result = g.findEquilibria(args.method)
     if result is not None:
-        if g.degenerated:
-            sys.stderr.write("WARNING: game is degenerated.\n") 
-        print "NE: ", np.round(np.abs(result), decimals=4)
-        for player in range(g.num_players):
-            print player, ":", g.payoff(result,player)
+        g.printNE(result, payoff=args.payoff, warning=args.warning)
     else:
         sys.exit("Nash equilibrium was not found.")
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
