@@ -23,6 +23,8 @@ class Game(object):
             self.read(nfg)
             self.players_zeros = np.zeros(self.num_players)
             self.verbose = verbose
+            self.brs = None
+            self.degenerated = None
 
     def bestResponse(self, player, strategy):
         """
@@ -61,10 +63,23 @@ class Game(object):
             for strategy in np.ndindex(*p_view):
                 # add to list of best responses
                 self.brs[player].update(self.bestResponse(player, strategy))
+        # check degeneration of a game 
+        self.degenerated = self.isDegenerated()
         # PNE is where all player have Best Response
         ne_coordinates = set.intersection(*self.brs)
         result = map(self.coordinateToStrategyProfile, ne_coordinates)
         return result
+
+    def isDegenerated(self):
+        if self.brs is None:
+            self.getPNE()
+        num_brs = [len(x) for x in self.brs]
+        num_strategies = [reduce(mul, self.shape[:k] + self.shape[(k+1):]) for k in range(self.num_players)]
+        if num_brs != num_strategies:
+            return True
+        else:
+            return False
+
 
     def get_equation_set(self, combination, player, num_supports):
         """
@@ -436,6 +451,8 @@ if __name__ == '__main__':
     g = Game(game_str, args.verbose)
     result = g.findEquilibria(args.method)
     if result is not None:
+        if g.degenerated:
+            sys.stderr.write("WARNING: game is degenerated.\n") 
         print "NE: ", np.round(np.abs(result), decimals=4)
         for player in range(g.num_players):
             print player, ":", g.payoff(result,player)
