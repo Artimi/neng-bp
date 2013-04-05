@@ -436,5 +436,10 @@ if __name__ == '__main__':
     result = g.findEquilibria(args.method, args.verbose)
     if result is not None:
         print "NE: ", np.round(np.abs(result), decimals=4)
+        for player in range(g.num_players):
+            print player, ":", g.payoff(result,player)
     else:
         sys.exit("Nash equilibrium was not found.")
+# zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
+# jina metoda urceni NE pro overeni vysledku
+# degenerovanost hry
