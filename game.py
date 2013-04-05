@@ -18,10 +18,11 @@ class Game(object):
                'cmaes', 'support_enumeration', 'pne']
 # not Newton-CG there is needed jacobian of function
 
-    def __init__(self, nfg=""):
+    def __init__(self, nfg="", verbose=False):
         if nfg != "":
             self.read(nfg)
             self.players_zeros = np.zeros(self.num_players)
+            self.verbose = verbose
 
     def bestResponse(self, player, strategy):
         """
@@ -148,7 +149,7 @@ class Game(object):
                 result.append(mne)
         return result
 
-    def cmaes(self, strfitnessfct, N, verbose=False):
+    def cmaes(self, strfitnessfct, N):
         """
         Function minimization via Covariance Matrix Adaptation Evolution
         Strategy
@@ -214,14 +215,14 @@ class Game(object):
                 C = np.triu(C) + np.triu(C, 1).T
                 D, B = np.linalg.eig(C)
                 D = np.diag(np.sqrt(D))
-            if verbose:
+            if self.verbose:
                 sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<70}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
                     iteration=iteration, best=map(lambda x: round(x, 3), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
                 if iteration % 20 == 0:
                     sys.stdout.write('\n')
             iteration += 1
             if arfitness[0] <= stopfitness:
-                if verbose:
+                if self.verbose:
                     sys.stdout.write('\n')
                 break
             # Escape flat fitness, maybe restart?
@@ -311,7 +312,7 @@ class Game(object):
             acc += i
         return result
 
-    def findEquilibria(self, method='cmaes', verbose=False):
+    def findEquilibria(self, method='cmaes'):
         """
         Find all equilibria
         @return set of PNE and MNE
@@ -321,10 +322,10 @@ class Game(object):
         elif self.num_players == 2 and method == 'support_enumeration':
             return self.support_enumeration()
         elif method == 'cmaes':
-            result = self.cmaes(self.v_function, self.sum_shape, verbose=verbose)
+            result = self.cmaes(self.v_function, self.sum_shape)
         elif method in self.METHODS:
             result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
-        if verbose:
+        if self.verbose:
             print result
         if result.success:
             return result.x
@@ -432,8 +433,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.file) as f:
         game_str = f.read()
-    g = Game(game_str)
-    result = g.findEquilibria(args.method, args.verbose)
+    g = Game(game_str, args.verbose)
+    result = g.findEquilibria(args.method)
     if result is not None:
         print "NE: ", np.round(np.abs(result), decimals=4)
         for player in range(g.num_players):
