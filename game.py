@@ -48,6 +48,29 @@ class Game(object):
             result.add(tuple(s))
         return result
 
+    def getDominatedStrategies(self):
+        empty = [slice(None)] * self.num_players
+        result = []
+        for player in range(self.num_players):
+            s1 = empty[:]
+            strategies = []
+            dominated_strategies = []
+            for strategy in range(self.shape[player]):
+                s1[player] = strategy
+                strategies.append(self.array[player][s1])
+            for strategy in range(self.shape[player]):
+                dominated = True
+                for strategy2 in range(self.shape[player]):
+                    if strategy == strategy2:
+                        continue
+                    elif (strategies[strategy] >= strategies[strategy2]).any():
+                        dominated = False
+                        break
+                if dominated:
+                    dominated_strategies.append(strategy)
+            result.append(dominated_strategies)     
+        return result
+
     def getPNE(self):
         """
         Function computes PNE
@@ -478,4 +501,3 @@ if __name__ == '__main__':
         sys.exit("Nash equilibrium was not found.")
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
 # jina metoda urceni NE pro overeni vysledku
-# degenerovanost hry
