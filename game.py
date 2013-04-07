@@ -29,6 +29,7 @@ class Game(object):
         """
         Computes bestResponse strategy profile for given opponent strategy and
         player
+
         @params strategy opponent strategy
         @param player who should respond
         @return set of strategies
@@ -48,6 +49,9 @@ class Game(object):
         return result
 
     def getDominatedStrategies(self):
+        """
+        @return list of players dominated strategies
+        """
         empty = [slice(None)] * self.num_players
         result = []
         for player in range(self.num_players):
@@ -73,6 +77,7 @@ class Game(object):
     def getPNE(self):
         """
         Function computes PNE
+
         @return set of strategy profiles that was computed as pure nash
         equlibria
         """
@@ -93,6 +98,9 @@ class Game(object):
         return result
 
     def isDegenerated(self):
+        """
+        @return True|False if game is said as degenerated
+        """
         if self.brs is None:
             self.getPNE()
         num_brs = [len(x) for x in self.brs]
@@ -118,6 +126,11 @@ class Game(object):
         | ...  ...  ... ... ... | | ... | =  |...|
         | b_k1 b_k2 ... b_kk -1 | | x_k |    | 0 |
         \ 1    1    ... 1     0 / \ v   /    \ 1 /
+
+        @params combination combination of strategies to make equation set
+        @params player number of player for who the equation matrix will be done
+        @params num_supports number of supports for players
+        @return equation matrix for solving in e.g. np.linalg.solve
         """
         row_index = np.zeros(self.shape[0], dtype=bool)
         col_index = np.zeros(self.shape[1], dtype=bool)
@@ -141,6 +154,8 @@ class Game(object):
     def support_enumeration(self):
         """
         Computes NE of 2 players nondegenerate games
+        
+        @return set of NE computed by method support enumeration
         """
         result = self.getPNE()
         # for every numbers of supports
@@ -190,6 +205,10 @@ class Game(object):
         """
         Function minimization via Covariance Matrix Adaptation Evolution
         Strategy
+
+        @params strfitnessfct function to be minimized
+        @params N number of parameter to function
+        @return scipy.Optimize.Result with datas of computation
         """
         # input parameters
         xmean = np.random.rand(N)
@@ -281,10 +300,15 @@ class Game(object):
 
     def v_function(self, strategy_profile):
         """
+        Lyapunov function. If v_function(p) == 0 then p is NE.
+
         xij(p) = ui(si, p_i)
         yij(p) = xij(p) - ui(p)
         zij(p) = max[yij(p), 0]
-        v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2
+        v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2 + penalty
+
+        @params strategy_profile list of parameters to function
+        @return value of v_function in given strategy_profile
         """
         v = 0.0
         acc = 0
@@ -306,10 +330,13 @@ class Game(object):
     def payoff(self, strategy_profile, pplayer, pure_strategy=None, normalize=False):
         """
         Function to compute payoff of given strategy_profile
+
         @param strategy_profile list of probability distributions
-        @param pure_strategy tuple (player, strategy) to replace
-        current player strategy with pure strategy
-        @return np.array of payoffs for each player
+        @params pplayer player for who the payoff is computated
+        @param pure_strategy if not None pplayer strategy will be replaced
+        by pure_strategy
+        @param normalize use normalization to strategy_profile
+        @return value of payoff
         """
         deep_strategy_profile = []
         result = 0.0
@@ -337,10 +364,19 @@ class Game(object):
         Normalize strategy_profile to asure constraints:
         for all strategies sum p(si) = 1
         p(si) >= 0.0
+
+        @param strategy np.array of probability distribution for one player
+        @returns np.array normalized strategy distribution
         """
         return np.abs(strategy) / np.sum(np.abs(strategy))
 
     def normalize_strategy_profile(self, strategy_profile):
+        """
+        Normalize whole strategy profile by strategy of each player
+
+        @parameter strategy_profile to be normalized
+        @return normalized strategy_profile
+        """
         result = []
         acc = 0
         for i in self.shape:
@@ -351,8 +387,10 @@ class Game(object):
 
     def findEquilibria(self, method='cmaes'):
         """
-        Find all equilibria
-        @return set of PNE and MNE
+        Find all equilibria, using method
+
+        @params method method from Game.METHODS to be used
+        @return list of NE(list of probabilities)
         """
         if method == 'pne':
             return self.getPNE()
@@ -374,7 +412,9 @@ class Game(object):
 
     def read(self, nfg):
         """
-        Reads game in .nfg format and stores data to class variables
+        Reads game in .nfg format and stores data to class variables.
+        Can read nfg files in outcome and payoff version
+
         @param nfg string with nfg formated game
         """
         tokens = shlex.split(nfg)
@@ -435,8 +475,9 @@ class Game(object):
 
     def __str__(self):
         """
-        Output in nfg format
-        @return game in nfg format
+        Output in nfg payoff format.
+        
+        @return game in nfg payoff format
         """
         result = "NFG 1 R "
         result += "\"" + self.name + "\"\n"
@@ -453,7 +494,8 @@ class Game(object):
     def coordinateToStrategyProfile(self, t):
         """
         Translate tuple form of strategy profile to long, gambit-like format
-        @params t tuple to Translate
+
+        @params t tuple to translate
         @return list of numbers in long format
         """
         result = [0.0] * self.sum_shape
@@ -466,6 +508,10 @@ class Game(object):
     def printNE(self, nes, payoff=False, warning=True):
         """
         Print Nash equilibria with with some statistics
+
+        @params nes list of nash equilibria
+        @params payoff print also informations about players payoff
+        @params warning print also warnings of game
         """
         if warning and self.degenerated:
             sys.stderr.write("WARNING: game is degenerated.\n")
