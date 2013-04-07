@@ -18,13 +18,12 @@ class Game(object):
                'cmaes', 'support_enumeration', 'pne']
 # not Newton-CG there is needed jacobian of function
 
-    def __init__(self, nfg="", verbose=False):
-        if nfg != "":
-            self.read(nfg)
-            self.players_zeros = np.zeros(self.num_players)
-            self.verbose = verbose
-            self.brs = None
-            self.degenerated = None
+    def __init__(self, nfg, verbose=False):
+        self.read(nfg)
+        self.players_zeros = np.zeros(self.num_players)
+        self.verbose = verbose
+        self.brs = None
+        self.degenerated = None
 
     def bestResponse(self, player, strategy):
         """
