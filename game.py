@@ -312,7 +312,7 @@ class Game(object):
         """
         v = 0.0
         acc = 0
-        negative_penalty = np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
+        negative_penalty = 100 * np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
         v += negative_penalty
         for player in range(self.num_players):
             u = self.payoff(strategy_profile, player)
@@ -528,7 +528,7 @@ class Game(object):
                 print "Payoff", ", ".join(s)
             if checkNE:
                 #self.checkNE(map(lambda x: round(x, 4), ne))
-                self.checkNE(ne, num_tests=100000)
+                self.checkNE(ne) 
                     
 
     def checkNE(self, strategy_profile, num_tests=1000):
@@ -585,4 +585,3 @@ if __name__ == '__main__':
 
     #g.checkNE([0.500,0.500,0.333,0.667])
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
-# jina metoda urceni NE pro overeni vysledku
