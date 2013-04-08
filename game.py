@@ -338,18 +338,21 @@ class Game(object):
         @param normalize use normalization to strategy_profile
         @return value of payoff
         """
-        deep_strategy_profile = []
         result = 0.0
         acc = 0
-        for player, i in enumerate(self.shape):
-            strategy = np.array(strategy_profile[acc:acc+i])
-            if pure_strategy is not None and player == pplayer:
-                strategy = np.zeros_like(strategy)
-                strategy[pure_strategy] = 1.0
-            if normalize:
-                strategy = self.normalize(strategy)
-            deep_strategy_profile.append(strategy)
-            acc += i
+        if len(strategy_profile) == self.sum_shape:
+            deep_strategy_profile = []
+            for player, i in enumerate(self.shape):
+                strategy = np.array(strategy_profile[acc:acc+i])
+                if pure_strategy is not None and player == pplayer:
+                    strategy = np.zeros_like(strategy)
+                    strategy[pure_strategy] = 1.0
+                if normalize:
+                    strategy = self.normalize(strategy)
+                deep_strategy_profile.append(strategy)
+                acc += i
+        elif len(strategy_profile) == self.num_players:
+            deep_strategy_profile = strategy_profile
         it = np.nditer(self.array[pplayer], flags=['multi_index', 'refs_ok'])
         while not it.finished:
             product = 1.0
@@ -505,7 +508,7 @@ class Game(object):
             accumulator += i
         return result
 
-    def printNE(self, nes, payoff=False, warning=True):
+    def printNE(self, nes, payoff=False, warning=True, checkNE=False):
         """
         Print Nash equilibria with with some statistics
 
@@ -523,7 +526,41 @@ class Game(object):
                 for player in range(self.num_players):
                     s.append("{0}: {1:.3f}".format(self.players[player], self.payoff(ne, player)))
                 print "Payoff", ", ".join(s)
+            if checkNE:
+                #self.checkNE(map(lambda x: round(x, 4), ne))
+                self.checkNE(ne, num_tests=100000)
+                    
 
+    def checkNE(self, strategy_profile, num_tests=1000):
+        """
+        Function generates random probability distribution for players and
+        check if strategy_profile is really NE. If the payoff will be bigger
+        it's not the NE.
+
+        @param strategy_profile check if is NE
+        @return True if strategy_profile passed test, False otherwise
+        """
+        payoffs = []
+        deep_strategy_profile = []
+        acc = 0
+        for player, i in enumerate(self.shape):
+            strategy = np.array(strategy_profile[acc:acc+i])
+            deep_strategy_profile.append(strategy)
+            acc += i
+            #payoffs
+            payoffs.append(self.payoff(strategy_profile, player))
+        for player in range(self.num_players):
+            dsp = deep_strategy_profile[:]
+            for i in range(num_tests):
+                dsp[player] = self.normalize(np.random.rand(self.shape[player]))
+                current_payoff = self.payoff(dsp, player)
+                if (current_payoff - payoffs[player]) >  1e-4:
+                    print 'Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player], 
+                            current_payoff, payoffs[player] - current_payoff )
+                    print "Test failed"
+                    return False
+        print "Test passed"
+        return True
 
 
 if __name__ == '__main__':
@@ -534,6 +571,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
     parser.add_argument('-w', '--warning', action='store_true', default=True)
+    parser.add_argument('-c', '--checkNE', action='store_true', default=False)
     args = parser.parse_args()
 
     with open(args.file) as f:
@@ -541,8 +579,10 @@ if __name__ == '__main__':
     g = Game(game_str, args.verbose)
     result = g.findEquilibria(args.method)
     if result is not None:
-        g.printNE(result, payoff=args.payoff, warning=args.warning)
+        g.printNE(result, payoff=args.payoff, warning=args.warning, checkNE=args.checkNE)
     else:
         sys.exit("Nash equilibrium was not found.")
+
+    #g.checkNE([0.500,0.500,0.333,0.667])
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
 # jina metoda urceni NE pro overeni vysledku
