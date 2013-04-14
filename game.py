@@ -10,7 +10,7 @@ import ipdb
 from operator import mul
 import scipy.optimize
 import sys
-
+import games_result
 
 class Game(object):
     METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
@@ -212,7 +212,9 @@ class Game(object):
         """
         # input parameters
         xmean = np.random.rand(N)
-        sigma = 0.5
+        #xmean = np.array([0.033, 0.974, -0.0, 1.0, 0.974, 0.043, 0.002, 1.0, 0.809, 0.201])
+        sigma = 0.3
+        #sigma = 1e-5
         stopfitness = 1e-10
         stopeval = 1e3 * N ** 2
         # strategy parameter setting: selection
@@ -245,8 +247,10 @@ class Game(object):
         while counteval < stopeval:
             for k in range(lamda):
                 arz[:, k] = np.random.randn(N)
-                arx[:, k] = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
-                arfitness[k] = strfitnessfct(arx[:, k])
+                x = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
+                x_repaired = np.clip(x, 0, 1) 
+                arx[:, k] = x
+                arfitness[k] = strfitnessfct(arx[:, k]) + 10 * np.linalg.norm(x - x_repaired) ** 2
                 counteval += 1
             # sort by fitness and compute weighted mean into xmean
             arindex = np.argsort(arfitness)
@@ -272,8 +276,8 @@ class Game(object):
                 D, B = np.linalg.eig(C)
                 D = np.diag(np.sqrt(D))
             if self.verbose:
-                sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<70}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
-                    iteration=iteration, best=map(lambda x: round(x, 3), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
+                sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<80}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
+                    iteration=iteration, best=map(lambda x: round(x, 4), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
                 if iteration % 20 == 0:
                     sys.stdout.write('\n')
             iteration += 1
@@ -282,9 +286,9 @@ class Game(object):
                     sys.stdout.write('\n')
                 break
             # Escape flat fitness, maybe restart?
-            if np.abs(arfitness[0] - arfitness[np.ceil(0.7 * lamda)]) <= stopfitness:
-                sigma = sigma * np.exp(0.2 + cs/damps)
-        result = scipy.optimize.Result()
+            #if np.abs(arfitness[0] - arfitness[np.ceil(0.7 * lamda)]) <= stopfitness:
+                #sigma = sigma * np.exp(0.2 + cs/damps)
+        result = scipy.optimize.Result()        
         result['x'] = arx[:, arindex[0]]
         result['fun'] = arfitness[0]
         result['nfev'] = counteval
@@ -312,8 +316,8 @@ class Game(object):
         """
         v = 0.0
         acc = 0
-        negative_penalty = 100 * np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
-        v += negative_penalty
+        #negative_penalty = 100 * np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
+        #v += negative_penalty
         for player in range(self.num_players):
             u = self.payoff(strategy_profile, player)
             one_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
@@ -421,10 +425,10 @@ class Game(object):
         @param nfg string with nfg formated game
         """
         tokens = shlex.split(nfg)
-        preface = ["NFG", "1", "R"]
-        if tokens[:3] != preface:
-            raise exceptions.FormatError(
-                "Input string is not valid nfg format")
+        #preface = ["NFG", "1", "R"]
+        #if tokens[:3] != preface:
+            #raise exceptions.FormatError(
+                #"Input string is not valid nfg format")
         self.name = tokens[3]
         brackets = [i for i, x in enumerate(tokens) if x == "{" or x == "}"]
         if len(brackets) == 4:
@@ -565,6 +569,7 @@ class Game(object):
 
 if __name__ == '__main__':
     import argparse
+    import os.path
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
@@ -582,6 +587,15 @@ if __name__ == '__main__':
         g.printNE(result, payoff=args.payoff, warning=args.warning, checkNE=args.checkNE)
     else:
         sys.exit("Nash equilibrium was not found.")
-
+    filename = os.path.basename(args.file)
+    for r in result:
+        if filename in games_result.r:
+            found = False
+            for gr in games_result.r[filename]:
+                if np.allclose(r, gr, atol=1e-2, rtol=0):
+                    found = True
+                    break
+            if found  == False:
+                print "NE {0} was not found in results.".format(r)
     #g.checkNE([0.500,0.500,0.333,0.667])
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
