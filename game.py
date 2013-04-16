@@ -218,7 +218,7 @@ class Game(object):
         stopfitness = 1e-10
         stopeval = 1e3 * N ** 2
         # strategy parameter setting: selection
-        lamda = int(4 + 3 * np.log(N))
+        lamda = 2 * int(4 + 3 * np.log(N))
         mu = lamda / 2
         weights = np.array([np.log(mu + 0.5) - np.log(i) for i in range(1, int(mu) + 1)])
         mu = int(mu)
@@ -241,22 +241,23 @@ class Game(object):
         # generation loop
         counteval = 0
         iteration = 0
-        arx = np.empty([N, lamda])
-        arz = np.empty_like(arx)
+        arx = np.empty([lamda, N])
         arfitness = np.empty(lamda)
         while counteval < stopeval:
+            arz = np.random.randn(lamda, N)
+            arx = xmean + sigma * (np.dot(np.dot(B, D), arz.T)).T
             for k in range(lamda):
-                arz[:, k] = np.random.randn(N)
-                x = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
-                x_repaired = np.clip(x, 0, 1) 
-                arx[:, k] = x
-                arfitness[k] = strfitnessfct(arx[:, k]) + 10 * np.linalg.norm(x - x_repaired) ** 2
+                #arz[:, k] = np.random.randn(N)
+                # use sigma_vec as on cma.py:1757
+                #x = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
+                #arx[:, k] = x
+                arfitness[k] = strfitnessfct(arx[ k])
                 counteval += 1
             # sort by fitness and compute weighted mean into xmean
             arindex = np.argsort(arfitness)
             arfitness = arfitness[arindex]
-            xmean = np.dot(arx[:, arindex[:mu]], weights)
-            zmean = np.dot(arz[:, arindex[:mu]], weights)
+            xmean = np.dot(arx[arindex[:mu]].T, weights)
+            zmean = np.dot(arz[arindex[:mu]].T, weights)
             ps = np.dot((1 - cs), ps) + np.dot((np.sqrt(cs * (2 - cs) * mueff)), np.dot(B, zmean))
             hsig = np.linalg.norm(ps) / np.sqrt(1 - (1 - cs) ** (2 * counteval / lamda)) / chiN < 1.4 + 2 / (N + 1)
             pc = np.dot((1 - cc), pc) + np.dot(np.dot(hsig, np.sqrt(cc * (2 - cc) * mueff)), np.dot(np.dot(B, D), zmean))
@@ -265,8 +266,8 @@ class Game(object):
                 + np.dot(c1, ((pc * pc.T)
                 + np.dot((1 - hsig) * cc * (2 - cc), C))) \
                 + np.dot(cmu,
-                         np.dot(np.dot(np.dot(np.dot(B, D), arz[:, arindex[:mu]]),
-                                np.diag(weights)), (np.dot(np.dot(B, D), arz[:, arindex[:mu]])).T))
+                         np.dot(np.dot(np.dot(np.dot(B, D), arz[arindex[:mu]].T),
+                                np.diag(weights)), (np.dot(np.dot(B, D), arz[arindex[:mu]].T)).T))
             # adapt step size sigma
             sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(ps) / chiN - 1))
             # diagonalization
@@ -277,7 +278,7 @@ class Game(object):
                 D = np.diag(np.sqrt(D))
             if self.verbose:
                 sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<80}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
-                    iteration=iteration, best=map(lambda x: round(x, 4), arx[:, arindex[0]]), v_function=arfitness[0], sigma=sigma))
+                    iteration=iteration, best=map(lambda x: round(x, 4), arx[arindex[0]]), v_function=arfitness[0], sigma=sigma))
                 if iteration % 20 == 0:
                     sys.stdout.write('\n')
             iteration += 1
@@ -289,7 +290,7 @@ class Game(object):
             #if np.abs(arfitness[0] - arfitness[np.ceil(0.7 * lamda)]) <= stopfitness:
                 #sigma = sigma * np.exp(0.2 + cs/damps)
         result = scipy.optimize.Result()        
-        result['x'] = arx[:, arindex[0]]
+        result['x'] = arx[arindex[0]]
         result['fun'] = arfitness[0]
         result['nfev'] = counteval
         if counteval < stopeval:
@@ -316,11 +317,14 @@ class Game(object):
         """
         v = 0.0
         acc = 0
-        #negative_penalty = 100 * np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
-        #v += negative_penalty
+        strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
+        out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2 )
+        #negative_penalty =  np.sum(map(lambda x: min(x, 0) ** 2, strategy_profile))
+        v += out_of_box_penalty * 10
         for player in range(self.num_players):
             u = self.payoff(strategy_profile, player)
-            one_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
+            one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
+            v += one_sum_penalty
             acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
                 #ipdb.set_trace()
@@ -328,7 +332,6 @@ class Game(object):
                 z = x - u
                 g = max(z, 0.0)
                 v += g ** 2
-            v += one_penalty
         return v
 
     def payoff(self, strategy_profile, pplayer, pure_strategy=None, normalize=False):
