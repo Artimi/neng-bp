@@ -3,11 +3,15 @@
 
 from __future__ import division
 import numpy as np
+import scipy.optimize
+import collections
+import logging
 
 
 class CMAES(object):
 
-    def __init__(self, N, sigma=0.3, xmean=None):
+    def __init__(self, func, N, sigma=0.3, xmean=None):
+        self.func = func
         self.N = N
         if xmean is None:
             self.xmean = np.random.rand(N)
@@ -44,22 +48,38 @@ class CMAES(object):
                                      (21 * self.N ** 2))
         # generation loop
         self.counteval = 0
-        self.iteration = 0
-        #self.arx = np.empty([self.N, self.lamda])
-        #self.arz = np.empty_like(self.arx)
-        #self.arfitness = np.empty(self.lamda)
+        self.generation = 0
 
-    def ask(self, lamda=None, xmean=None):
+        #stop criteria
+        self.stop_criteria = ("Fitness",
+                              "MaxEval",
+                              "NoEffectAxis",
+                              "NoEffectCoord",
+                              "Stagnation",
+                              "TolXUp",
+                              "TolFun",
+                              "TolX")
+        self.tolx = 1e-12 * self.sigma
+        self.tolfun = 1e-12
+        self.tolxup = 1e4
+        self.short_history_len = 10 + np.ceil(30 * self.N / self.lamda)
+        self.long_history_len_down = 120 + 30 * self.N / self.lamda
+        self.long_history_len_up = 20000
+        self.history = {}
+        self.history['short_best'] = collections.deque()
+        self.history['long_best'] = collections.deque()
+        self.history['long_median'] = collections.deque()
+
+    def new_generation(self, lamda=None, xmean=None):
         if lamda is not None:
             self.lamda = lamda
+        self.generation += 1
         self.arz = np.random.randn(self.lamda, self.N)
         self.arx = self.xmean + self.sigma * np.dot(np.dot(self.B, self.D), self.arz.T).T
         return self.arx
 
-
-    def tell(self, arfitness):
+    def update(self, arfitness):
         self.arfitness = arfitness
-        self.iteration += 1
         self.counteval += self.lamda
         self.arindex = np.argsort(self.arfitness)
         # sort by fitness and compute weighted mean into xmean
@@ -85,18 +105,73 @@ class CMAES(object):
             self.C = np.triu(self.C) + np.triu(self.C, 1).T
             self.D, self.B = np.linalg.eig(self.C)
             self.D = np.diag(np.sqrt(self.D))
-        if self.arfitness[0] <= self.stopfitness:
+        #history
+        self.history['short_best'].append(arfitness[0])
+        if len(self.history['short_best']) >= self.short_history_len:
+            self.history['short_best'].popleft()
+        if self.generation % 5 == 0:  # last 20 %
+            self.history['long_best'].append(arfitness[0])
+            self.history['long_median'].append(np.median(arfitness))
+        if len(self.history['long_best']) >= self.long_history_len_up:
+            self.history['long_best'].popleft()
+            self.history['long_median'].popleft()
+        self.check_stop()
+        if self.generation % 20 == 0:
+            self.log_state()
+
+    def fmin(self):
+        while not self.end:
+            pop = self.new_generation()
+            values = np.empty(pop.shape[0])
+            for i in xrange(pop.shape[0]):
+                values[i] = self.func(pop[i])
+            self.update(values)
+        return self.result
+    
+    def restart(self):
+        self.__init__(self.N)
+
+    def check_stop(self):
+        i = self.generation % self.N
+        self.stop_conditions = (self.arfitness[0] <= self.stopfitness,
+                                self.counteval > self.stopeval,
+                                sum(self.xmean == self.xmean + 0.1 * self.sigma * self.D[i] * self.B[:, i]) == self.N,
+                                np.any(self.xmean == self.xmean + 0.2 * self.sigma * np.sqrt(self.C)),
+                                len(self.history['long_median']) > self.long_history_len_down and np.median(self.history['long_median'][- int(0.3*len(self.history['long_median'])):]) <= np.median(self.history['long_median'][:int(0.3*len(self.history['long_median']))]),
+                                self.sigma * np.max(self.D) >= self.tolxup,
+                                max(self.history['short_best']) - min(self.history['short_best']) <= self.tolfun and self.arfitness[-1] - self.arfitness[0] <= self.tolfun,
+                                np.all(self.sigma * self.pc < self.tolx) and np.all(self.sigma * np.sqrt(self.C) < self.tolx)
+                               )
+        if np.any(self.stop_conditions):
             self.end = True
-            self.result = self.arx[self.arindex[0]]
-        
+            self.status = self.stop_conditions.index(True)
+        return self.end
+
+    def log_state(self):
+        logging.debug("generation: {generation:<5}, v: {v_function:<6.2e}, sigma: {sigma:.2e}, best: {best}".format(
+            generation=self.generation, best=map(lambda x: round(x, 4), self.arx[self.arindex[0]]), v_function=self.arfitness[0], sigma=self.sigma))
+
+    @property
+    def result(self):
+        if not self.end:
+                raise AttributeError("Result is not ready yet, cmaes is not finished")
+        else:
+            self._result = scipy.optimize.Result()        
+            self._result['x'] = self.arx[self.arindex[0]]
+            self._result['fun'] = self.arfitness[0]
+            self._result['nfev'] = self.counteval
+            if self.status == 0:
+                self._result['success'] = True
+                self._result['status'] = self.status
+                self._result['message'] = "Optimization terminated successfully."
+            else:
+                self._result['success'] = False
+                self._result['status'] = self.status
+                self._result['message'] = self.stop_criteria[self.status]
+        return self._result
+
 
 def fmin(func, N):
-    cma = CMAES(N)
-    while not cma.end:
-        pop = cma.ask()
-        values = np.empty(pop.shape[0])
-        for i in xrange(pop.shape[0]):
-            values[i] = func(pop[i])
-        cma.tell(values)
-    print "Result: {0}\nFunction value: {1}".format(cma.result, cma.arfitness[0])
+    c = CMAES(func, N)
+    return c.fmin()
 
