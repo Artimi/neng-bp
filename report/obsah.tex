@@ -1,0 +1,75 @@
+%=========================================================================
+% (c) Michal Bidlo, Bohuslav Køena, 2008
+
+\chapter{Úvod}
+
+
+\chapter{Teorie her}
+V této práci se budu zabývat teorií her hlavnì její podkapitolou nekooperativní hry v normální formì. Za první popsání teorie her se pova¾uje dílo \textit{Theory of games and economic behavior} od John von Neumann~\cite{Neumann}. Za faktický vznik teorie her lze pova¾ovat vydání èlánku Johna Nashe \textit{Non-Cooperative Games}~\cite{Nash51}. V tomto èlánku øe¹í hry pomocí ekvilibria neboli rovnováhy, která je pro hráèe nejracionálnìj¹í. Na poèest Nashova objevu byla tato rovnováha nazvána Nashovo ekvilibrium (Nash equilibrium, NE). V této práci popí¹eme právì nástroj pro výpoèet Nashova ekvilibria. V následujících sekcích budeme vycházet z~\cite{Hruby} a pou¾ívat terminologii tam uvedenou.
+
+\section{Nekooperativní hra}
+Nekooperativní hru si lze pøedstavit jako hru dva a více protihráèù, kdy ka¾dý hraje sám za sebe. Opakem nekooperativních her jsou poté hry kooperativní, u kterých hráèi mohou vytváøet urèité spojenectví. U protihráèù je tøeba zajistit následující vlastnosti\cite{Osborne}:
+\begin{itemize}
+	\item{Jsou racionální neboli se chovají jen podle vlastních zájmù}
+	\item{Berou v potaz racionální hru svých protihráèù}
+\end{itemize}
+Hráèi mají mo¾nost vybírat z urèitých akcí nebo \textit{strategií} a jsou si vìdomi dùsledkù pokud budou hrát tyto strategie. Tyto dùsledky jsou nazývány \textit{u¾itky}. Právì vìdomí si svých strategií a strategií je jedním ze základních kamenù her a nazývá se \textit{spoleèná znalost} (angl. common knowledge).
+
+Hra je potom hrána jako jedna ojedinìlá a neopakující se událost. Ka¾dý hráè se rozhodne pro urèitou strategii bez znalosti zvolených strategií ostatních hráèù. Hráèùm je sdìlen výsledek hry a tedy i jejich u¾itek. Hra tímto konèí.
+
+Nyní mù¾eme pøistoupit k matematické definici nekooperativní hry a v¹eho co je k ní potøeba.
+
+\begin{definition}\cite{Hruby}
+Strategická nekooperativní hra $N$ hráèù je $(2N+1)$-tice
+\begin{equation}
+\Gamma = (Q; S_1, S_2, \ldots, S_N; U_1, U_2, \ldots, U_N)
+\end{equation}
+
+kde:
+\begin{itemize}
+\item{$ Q = {1,2,\ldots,N}$ je koneèná mno¾ina hráèù ve høe.}
+\item{$S_i, i \in Q$ jsou (koneèné) mno¾iny ryzích strategií hráèù $i \in Q$.}
+\item{$U_i : S_1 \times S_2 \times \ldots \times S_N \rightarrow \mathbb{U} $ jsou funkce u¾itku hráèù.}
+\end{itemize}
+\end{definition}
+
+Oborem hodnot u¾itkových funkcí je obecnì univerzum $\mathbb{U}$. Prakticky se v¹ak vìt¹inou za toto univerzum berou reálné èísla $\mathbb{U} = \mathbb{R}$
+
+Kartézský souèin mno¾in strategií je nazýván \textit{mno¾inou strategických profilù hry}:
+\begin{equation}
+S = S_1 \times S_2 \times \ldots \times S_N = \prod_{i \in Q}{S_i}
+\end{equation}
+
+Tato mno¾ina je tedy mno¾ina v¹ech mo¾ných kombinací, které mohou hráèi hrát. Tyto kombinace se nazývají \textit{strategické profily}.
+
+Mno¾ina sub-profilù hráèe $i$ je kartézský souèin v¹ech mno¾in strategií kromì mno¾iny hráèovy:
+
+\begin{equation}
+S_{-i} = S_1 \times S_2 \times \ldots \times S_{i-1} \times S_{i+1} \times \ldots \times S_N = \prod_{j \in Q \setminus \{i\}}{S_j}
+\end{equation}
+
+Slo¾ení strategie $s_i \in S_i$ a kontextu protihráèù $s_{-i} \in S_{-i}$ znaèíme následujícím zpùsobem $(s_i, s_{-i}) \in S$.
+
+\subsection{Best response}
+
+
+\subsection{Dominance mezi strategiemi}
+
+\section{Ryzí Nashovo ekvilibrium}
+\subsection{Intuitivní algoritmus nalezení PNE}
+\subsection{Iterativní eliminace dominovaných strategií}
+
+\section{Efektivita profilu a Pareto dominance}
+
+\section{Smí¹ené roz¹íøení nekooperativní hry}
+\subsection{Obecný algoritmus výpoètu smí¹eného Nashova ekvilibria}
+
+
+\chapter{Návrh nástroje}
+
+\chapter{Detaily implementace}
+
+\chapter{Závìr}
+
+
+%=========================================================================
