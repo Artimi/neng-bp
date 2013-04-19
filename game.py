@@ -11,17 +11,19 @@ from operator import mul
 import scipy.optimize
 import sys
 import games_result
+import logging
+import cmaes
+import cma
 
 class Game(object):
     METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
                'Anneal', 'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP',
-               'cmaes', 'support_enumeration', 'pne']
+               'cmaes', 'support_enumeration', 'pne', 'cma']
 # not Newton-CG there is needed jacobian of function
 
-    def __init__(self, nfg, verbose=False):
+    def __init__(self, nfg):
         self.read(nfg)
         self.players_zeros = np.zeros(self.num_players)
-        self.verbose = verbose
         self.brs = None
         self.degenerated = None
 
@@ -201,108 +203,6 @@ class Game(object):
                 result.append(mne)
         return result
 
-    def cmaes(self, strfitnessfct, N):
-        """
-        Function minimization via Covariance Matrix Adaptation Evolution
-        Strategy
-
-        @params strfitnessfct function to be minimized
-        @params N number of parameter to function
-        @return scipy.Optimize.Result with datas of computation
-        """
-        # input parameters
-        xmean = np.random.rand(N)
-        #xmean = np.array([0.033, 0.974, -0.0, 1.0, 0.974, 0.043, 0.002, 1.0, 0.809, 0.201])
-        sigma = 0.3
-        #sigma = 1e-5
-        stopfitness = 1e-10
-        stopeval = 1e3 * N ** 2
-        # strategy parameter setting: selection
-        lamda = 2 * int(4 + 3 * np.log(N))
-        mu = lamda / 2
-        weights = np.array([np.log(mu + 0.5) - np.log(i) for i in range(1, int(mu) + 1)])
-        mu = int(mu)
-        weights = weights / np.sum(weights)
-        mueff = 1 / np.sum(weights ** 2)
-        # strategy parameter setting: adaptation
-        cc = (4 + mueff / N) / (N + 4 + 2 * mueff / N)
-        cs = (mueff + 2) / (N + mueff + 5)
-        c1 = 2 / ((N + 1.3) ** 2 + mueff)
-        cmu = min(1 - c1, 2 * (mueff - 2 + 1 / mueff) / ((N + 2) ** 2 + mueff))
-        damps = 1 + 2 * max(0, np.sqrt((mueff - 1) / (N + 1)) - 1) + cs
-        # initialize dynamic (internal) strategy parameters and constants
-        pc = np.zeros((1, N))
-        ps = np.zeros_like(pc)
-        B = np.eye(N)
-        D = np.eye(N)
-        C = np.identity(N)
-        eigenval = 0
-        chiN = N ** 0.5 * (1 - 1 / (4 * N) + 1 / (21 * N ** 2))
-        # generation loop
-        counteval = 0
-        iteration = 0
-        arx = np.empty([lamda, N])
-        arfitness = np.empty(lamda)
-        while counteval < stopeval:
-            arz = np.random.randn(lamda, N)
-            arx = xmean + sigma * (np.dot(np.dot(B, D), arz.T)).T
-            for k in range(lamda):
-                #arz[:, k] = np.random.randn(N)
-                # use sigma_vec as on cma.py:1757
-                #x = xmean + sigma * (np.dot(np.dot(B, D), arz[:, k]))
-                #arx[:, k] = x
-                arfitness[k] = strfitnessfct(arx[ k])
-                counteval += 1
-            # sort by fitness and compute weighted mean into xmean
-            arindex = np.argsort(arfitness)
-            arfitness = arfitness[arindex]
-            xmean = np.dot(arx[arindex[:mu]].T, weights)
-            zmean = np.dot(arz[arindex[:mu]].T, weights)
-            ps = np.dot((1 - cs), ps) + np.dot((np.sqrt(cs * (2 - cs) * mueff)), np.dot(B, zmean))
-            hsig = np.linalg.norm(ps) / np.sqrt(1 - (1 - cs) ** (2 * counteval / lamda)) / chiN < 1.4 + 2 / (N + 1)
-            pc = np.dot((1 - cc), pc) + np.dot(np.dot(hsig, np.sqrt(cc * (2 - cc) * mueff)), np.dot(np.dot(B, D), zmean))
-            # adapt covariance matrix C
-            C = np.dot((1 - c1 - cmu), C) \
-                + np.dot(c1, ((pc * pc.T)
-                + np.dot((1 - hsig) * cc * (2 - cc), C))) \
-                + np.dot(cmu,
-                         np.dot(np.dot(np.dot(np.dot(B, D), arz[arindex[:mu]].T),
-                                np.diag(weights)), (np.dot(np.dot(B, D), arz[arindex[:mu]].T)).T))
-            # adapt step size sigma
-            sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(ps) / chiN - 1))
-            # diagonalization
-            if counteval - eigenval > lamda / (c1 + cmu) / N / 10:
-                eigenval = counteval
-                C = np.triu(C) + np.triu(C, 1).T
-                D, B = np.linalg.eig(C)
-                D = np.diag(np.sqrt(D))
-            if self.verbose:
-                sys.stdout.write("Iteration: {iteration:<5}, Best: {best:<80}, v_function: {v_function:<6.2e}, Sigma: {sigma:.2e}\r".format(
-                    iteration=iteration, best=map(lambda x: round(x, 4), arx[arindex[0]]), v_function=arfitness[0], sigma=sigma))
-                if iteration % 20 == 0:
-                    sys.stdout.write('\n')
-            iteration += 1
-            if arfitness[0] <= stopfitness:
-                if self.verbose:
-                    sys.stdout.write('\n')
-                break
-            # Escape flat fitness, maybe restart?
-            #if np.abs(arfitness[0] - arfitness[np.ceil(0.7 * lamda)]) <= stopfitness:
-                #sigma = sigma * np.exp(0.2 + cs/damps)
-        result = scipy.optimize.Result()        
-        result['x'] = arx[arindex[0]]
-        result['fun'] = arfitness[0]
-        result['nfev'] = counteval
-        if counteval < stopeval:
-            result['success'] = True
-            result['status'] = 0
-            result['message'] = "Optimization terminated successfully."
-        else:
-            result['success'] = False
-            result['status'] = 1
-            result['message'] = 'Something went wrong.'
-        return result
-
     def v_function(self, strategy_profile):
         """
         Lyapunov function. If v_function(p) == 0 then p is NE.
@@ -407,11 +307,12 @@ class Game(object):
         elif self.num_players == 2 and method == 'support_enumeration':
             return self.support_enumeration()
         elif method == 'cmaes':
-            result = self.cmaes(self.v_function, self.sum_shape)
+            result = cmaes.fmin(self.v_function, self.sum_shape)
+        elif method == 'cma':
+            result = cma.fmin(self.v_function, np.random.rand(self.sum_shape))
         elif method in self.METHODS:
             result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
-        if self.verbose:
-            print result
+        logging.info(result)
         self.degenerated = self.isDegenerated()
         if result.success:
             r = []
@@ -515,27 +416,28 @@ class Game(object):
             accumulator += i
         return result
 
-    def printNE(self, nes, payoff=False, warning=True, checkNE=False):
+    def printNE(self, nes, payoff=False, checkNE=False):
         """
         Print Nash equilibria with with some statistics
 
         @params nes list of nash equilibria
         @params payoff print also informations about players payoff
-        @params warning print also warnings of game
         """
-        if warning and self.degenerated:
-            sys.stderr.write("WARNING: game is degenerated.\n")
+        result = ""
+        if self.degenerated:
+            logging.warning("Game is degenerated")
         for ne in nes:
             probabilities = ["%.3f" % abs(p) for p in ne]
-            print "NE", ", ".join(probabilities)
+            result += "NE " + ", ".join(probabilities) + "\n"
             if payoff:
                 s = []
                 for player in range(self.num_players):
                     s.append("{0}: {1:.3f}".format(self.players[player], self.payoff(ne, player)))
-                print "Payoff", ", ".join(s)
+                result += "Payoff " + ", ".join(s) + "\n"
             if checkNE:
                 #self.checkNE(map(lambda x: round(x, 4), ne))
                 self.checkNE(ne) 
+            return result
                     
 
     def checkNE(self, strategy_profile, num_tests=1000):
@@ -562,11 +464,11 @@ class Game(object):
                 dsp[player] = self.normalize(np.random.rand(self.shape[player]))
                 current_payoff = self.payoff(dsp, player)
                 if (current_payoff - payoffs[player]) >  1e-4:
-                    print 'Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player], 
-                            current_payoff, payoffs[player] - current_payoff )
-                    print "Test failed"
+                    logging.warning('Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player], 
+                            current_payoff, payoffs[player] - current_payoff))
+                    logging.warning("NE test failed")
                     return False
-        print "Test passed"
+        logging.info("NE test passed")
         return True
 
 
@@ -576,18 +478,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
-    parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
-    parser.add_argument('-w', '--warning', action='store_true', default=True)
     parser.add_argument('-c', '--checkNE', action='store_true', default=False)
+    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO",
+                                                             "WARNING", "ERROR",
+                                                             "CRITICAL"))
+    parser.add_argument('--log-file', default=None)
     args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log.upper(), None),
+                        format="%(levelname)s, %(asctime)s, %(message)s", filename=args.log_file)
 
     with open(args.file) as f:
         game_str = f.read()
-    g = Game(game_str, args.verbose)
+    g = Game(game_str)
     result = g.findEquilibria(args.method)
     if result is not None:
-        g.printNE(result, payoff=args.payoff, warning=args.warning, checkNE=args.checkNE)
+        print g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)
     else:
         sys.exit("Nash equilibrium was not found.")
     filename = os.path.basename(args.file)

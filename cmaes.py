@@ -13,16 +13,42 @@ class CMAES(object):
     def __init__(self, func, N, sigma=0.3, xmean=None):
         self.func = func
         self.N = N
+        self.store_parameters = {'func': func,
+                                 'N':    N,
+                                 'sigma': sigma,
+                                 'xmean': xmean,
+                                }
+        self.stopeval = 1e3 * self.N ** 2
+        self.stopfitness = 1e-10
+        self.eigenval = 0
+        # generation loop
+        self.counteval = 0
+        self.generation = 0
+        #stop criteria
+        self.stop_criteria = ("Fitness",
+                              "MaxEval",
+                              "NoEffectAxis",
+                              "NoEffectCoord",
+                              #"Stagnation",
+                              "ConditionCov"
+                              "TolXUp",
+                              "TolFun",
+                              "TolX")
+        self.tolfun = 1e-12
+        self.tolxup = 1e4
+        self.condition_cov_max = 1e14
+        self.lamda = int(4 + 3 * np.log(self.N))
+        self.init_variables(sigma, xmean)
+
+    def init_variables(self, sigma, xmean, lamda_factor=1):
+        self.sigma = sigma
         if xmean is None:
-            self.xmean = np.random.rand(N)
+            self.xmean = np.random.rand(self.N)
         else:
             self.xmean = xmean
-        self.end = False
-        self.sigma = sigma
-        self.stopfitness = 1e-10
-        self.stopeval = 1e3 * N ** 2
+        self.status = -1
         # strategy parameter setting: selection
-        self.lamda = 2 * int(4 + 3 * np.log(self.N))
+        self.lamda *= lamda_factor
         self.mu = self.lamda / 2
         self.weights = np.array([np.log(self.mu + 0.5) - np.log(i)
                                  for i in range(1, int(self.mu) + 1)])
@@ -30,8 +56,8 @@ class CMAES(object):
         self.weights = self.weights / np.sum(self.weights)
         self.mueff = 1 / np.sum(self.weights ** 2)
         # strategy parameter setting: adaptation
-        self.cc = (4 + self.mueff / N) / (N + 4 + 2 * self.mueff / N)
-        self.cs = (self.mueff + 2) / (N + self.mueff + 5)
+        self.cc = (4 + self.mueff / self.N) / (self.N + 4 + 2 * self.mueff / self.N)
+        self.cs = (self.mueff + 2) / (self.N + self.mueff + 5)
         self.c1 = 2 / ((self.N + 1.3) ** 2 + self.mueff)
         self.cmu = min(1 - self.c1, 2 * (self.mueff - 2 + 1 / self.mueff) /
                        ((self.N + 2) ** 2 + self.mueff))
@@ -43,25 +69,10 @@ class CMAES(object):
         self.B = np.eye(self.N)
         self.D = np.eye(self.N)
         self.C = np.identity(self.N)
-        self.eigenval = 0
         self.chiN = self.N ** 0.5 * (1 - 1 / (4 * self.N) + 1 /
                                      (21 * self.N ** 2))
-        # generation loop
-        self.counteval = 0
-        self.generation = 0
-
-        #stop criteria
-        self.stop_criteria = ("Fitness",
-                              "MaxEval",
-                              "NoEffectAxis",
-                              "NoEffectCoord",
-                              "Stagnation",
-                              "TolXUp",
-                              "TolFun",
-                              "TolX")
+        # termination
         self.tolx = 1e-12 * self.sigma
-        self.tolfun = 1e-12
-        self.tolxup = 1e4
         self.short_history_len = 10 + np.ceil(30 * self.N / self.lamda)
         self.long_history_len_down = 120 + 30 * self.N / self.lamda
         self.long_history_len_up = 20000
@@ -70,9 +81,7 @@ class CMAES(object):
         self.history['long_best'] = collections.deque()
         self.history['long_median'] = collections.deque()
 
-    def new_generation(self, lamda=None, xmean=None):
-        if lamda is not None:
-            self.lamda = lamda
+    def new_generation(self):
         self.generation += 1
         self.arz = np.random.randn(self.lamda, self.N)
         self.arx = self.xmean + self.sigma * np.dot(np.dot(self.B, self.D), self.arz.T).T
@@ -120,7 +129,10 @@ class CMAES(object):
             self.log_state()
 
     def fmin(self):
-        while not self.end:
+        while self.status != 0:
+            if self.status > 1:
+                logging.warning("Restart due to %s", self.stop_criteria[self.status] )
+                self.restart(2)
             pop = self.new_generation()
             values = np.empty(pop.shape[0])
             for i in xrange(pop.shape[0]):
@@ -128,8 +140,8 @@ class CMAES(object):
             self.update(values)
         return self.result
     
-    def restart(self):
-        self.__init__(self.N)
+    def restart(self, lamda_factor):
+        self.init_variables(0.3, np.random.rand(self.N), lamda_factor=lamda_factor)#self.store_parameters['sigma'], self.store_parameters['xmean'])
 
     def check_stop(self):
         i = self.generation % self.N
@@ -137,23 +149,25 @@ class CMAES(object):
                                 self.counteval > self.stopeval,
                                 sum(self.xmean == self.xmean + 0.1 * self.sigma * self.D[i] * self.B[:, i]) == self.N,
                                 np.any(self.xmean == self.xmean + 0.2 * self.sigma * np.sqrt(self.C)),
-                                len(self.history['long_median']) > self.long_history_len_down and np.median(self.history['long_median'][- int(0.3*len(self.history['long_median'])):]) <= np.median(self.history['long_median'][:int(0.3*len(self.history['long_median']))]),
+                                #len(self.history['long_median']) > self.long_history_len_down and \
+                                #np.median(list(itertools.islice(self.history['long_median'], int(0.7*len(self.history['long_median'])), None))) <= \
+                                #np.median(list(itertools.islice(self.history['long_median'],int(0.3*len(self.history['long_median']))))),
+                                np.linalg.cond(self.C) > self.condition_cov_max,
                                 self.sigma * np.max(self.D) >= self.tolxup,
                                 max(self.history['short_best']) - min(self.history['short_best']) <= self.tolfun and self.arfitness[-1] - self.arfitness[0] <= self.tolfun,
                                 np.all(self.sigma * self.pc < self.tolx) and np.all(self.sigma * np.sqrt(self.C) < self.tolx)
                                )
         if np.any(self.stop_conditions):
-            self.end = True
             self.status = self.stop_conditions.index(True)
-        return self.end
+        return True
 
     def log_state(self):
         logging.debug("generation: {generation:<5}, v: {v_function:<6.2e}, sigma: {sigma:.2e}, best: {best}".format(
-            generation=self.generation, best=map(lambda x: round(x, 4), self.arx[self.arindex[0]]), v_function=self.arfitness[0], sigma=self.sigma))
+            generation=self.generation, best=map(lambda x: round(x, 3), self.arx[self.arindex[0]]), v_function=self.arfitness[0], sigma=self.sigma))
 
     @property
     def result(self):
-        if not self.end:
+        if self.status != 0:
                 raise AttributeError("Result is not ready yet, cmaes is not finished")
         else:
             self._result = scipy.optimize.Result()        
@@ -172,6 +186,9 @@ class CMAES(object):
 
 
 def fmin(func, N):
+    #xmean = np.array([0.7138, 0.308, -0.0001, 1.0, 0.6003, 0.4096, 0.354, 0.663, 1.0001, -0.0001])
+    #sigma = 2.01e-06
+    #c = CMAES(func, N, xmean=xmean, sigma=sigma)
     c = CMAES(func, N)
     return c.fmin()
 
