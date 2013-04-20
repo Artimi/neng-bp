@@ -2,24 +2,25 @@
 % (c) Michal Bidlo, Bohuslav Køena, 2008
 
 \chapter{Úvod}
+ùkolem této práce bylo vytvoøit program pro ...
 
-
+nekooperativní hry jsou dùle¾ité...
 \chapter{Teorie her}
-V této práci se budu zabývat teorií her hlavnì její podkapitolou nekooperativní hry v normální formì. Za první popsání teorie her se pova¾uje dílo \textit{Theory of games and economic behavior} od John von Neumann~\cite{Neumann}. Za faktický vznik teorie her lze pova¾ovat vydání èlánku Johna Nashe \textit{Non-Cooperative Games}~\cite{Nash51}. V tomto èlánku øe¹í hry pomocí ekvilibria neboli rovnováhy, která je pro hráèe nejracionálnìj¹í. Na poèest Nashova objevu byla tato rovnováha nazvána Nashovo ekvilibrium (Nash equilibrium, NE). V této práci popí¹eme právì nástroj pro výpoèet Nashova ekvilibria. V následujících sekcích budeme vycházet z~\cite{Hruby} a pou¾ívat terminologii tam uvedenou.
+V této práci se budu zabývat teorií her a hlavnì její podkapitolou nekooperativní hry v normální formì. Za první popsání teorie her se pova¾uje dílo \textit{Theory of games and economic behavior} od John von Neumann~\cite{neumann2007theory}. Za faktický vznik teorie her lze pova¾ovat vydání èlánku Johna Nashe \textit{Non-Cooperative Games}~\cite{nash1951non}. V tomto èlánku øe¹í hry pomocí ekvilibria neboli rovnováhy, která je pro hráèe nejracionálnìj¹í. Na poèest Nashova objevu byla tato rovnováha nazvána Nashovo ekvilibrium (angl. Nash equilibrium). V této práci popí¹eme právì nástroj pro výpoèet Nashova ekvilibria. V následujících sekcích vìnující se samotné teorii budeme vycházet z~\cite{hruby2010doprovodne,osborne1994course, nisan2007algorithmic} a pou¾ívat notaci pøevládající v èláncích o teorii her~\cite{hruby2010doprovodne, lung2008computing}.
 
 \section{Nekooperativní hra}
-Nekooperativní hru si lze pøedstavit jako hru dva a více protihráèù, kdy ka¾dý hraje sám za sebe. Opakem nekooperativních her jsou poté hry kooperativní, u kterých hráèi mohou vytváøet urèité spojenectví. U protihráèù je tøeba zajistit následující vlastnosti\cite{Osborne}:
+Nekooperativní hru si lze pøedstavit jako hru dvou a více protihráèù, kdy ka¾dý hraje sám za sebe. Opakem nekooperativních her jsou hry kooperativní, u kterých hráèi mohou vytváøet urèité spojenectví. U protihráèù je tøeba zajistit následující vlastnosti\cite[str. 1]{osborne1994course}:
 \begin{itemize}
 	\item{Jsou racionální neboli se chovají jen podle vlastních zájmù}
 	\item{Berou v potaz racionální hru svých protihráèù}
 \end{itemize}
-Hráèi mají mo¾nost vybírat z urèitých akcí nebo \textit{strategií} a jsou si vìdomi dùsledkù pokud budou hrát tyto strategie. Tyto dùsledky jsou nazývány \textit{u¾itky}. Právì vìdomí si svých strategií a strategií je jedním ze základních kamenù her a nazývá se \textit{spoleèná znalost} (angl. common knowledge).
+Hráèi mají mo¾nost vybírat z urèitých akcí nebo \textit{strategií} a jsou si vìdomi dùsledkù pokud budou hrát tyto strategie. Tyto dùsledky jsou nazývány \textit{u¾itky}. Právì vìdomí si svých strategií, strategií protihráèù a v¹ech u¾itkù je jedním ze základních kamenù her a nazývá se \textit{spoleèná znalost} (angl. common knowledge).
 
-Hra je potom hrána jako jedna ojedinìlá a neopakující se událost. Ka¾dý hráè se rozhodne pro urèitou strategii bez znalosti zvolených strategií ostatních hráèù. Hráèùm je sdìlen výsledek hry a tedy i jejich u¾itek. Hra tímto konèí.
+Hra je potom hrána jako jedna ojedinìlá a neopakující se událost. Ka¾dý hráè se rozhodne pro urèitou strategii bez znalosti zvolených strategií ostatních hráèù. Samozøejmì takový hráè pøedpokládá, ¾e i ostatní hráèi jsou racionální a proto mù¾e pøedpokládat akce protihráèù. Hráèùm je sdìlen výsledek hry a tedy i jejich u¾itek. Hra tímto konèí.
 
 Nyní mù¾eme pøistoupit k matematické definici nekooperativní hry a v¹eho co je k ní potøeba.
 
-\begin{definition}\cite{Hruby}
+\begin{definition}
 Strategická nekooperativní hra $N$ hráèù je $(2N+1)$-tice
 \begin{equation}
 \Gamma = (Q; S_1, S_2, \ldots, S_N; U_1, U_2, \ldots, U_N)
@@ -27,8 +28,8 @@ Strategická nekooperativní hra $N$ hráèù je $(2N+1)$-tice
 
 kde:
 \begin{itemize}
-\item{$ Q = {1,2,\ldots,N}$ je koneèná mno¾ina hráèù ve høe.}
-\item{$S_i, i \in Q$ jsou (koneèné) mno¾iny ryzích strategií hráèù $i \in Q$.}
+\item{$Q = {1,2,\ldots,N}$ je koneèná mno¾ina hráèù ve høe.}
+\item{$S_i, i \in Q$ jsou (koneèné) mno¾iny ryzích strategií hráèù $i \in N$.}
 \item{$U_i : S_1 \times S_2 \times \ldots \times S_N \rightarrow \mathbb{U} $ jsou funkce u¾itku hráèù.}
 \end{itemize}
 \end{definition}
@@ -48,26 +49,160 @@ Mno¾ina sub-profilù hráèe $i$ je kartézský souèin v¹ech mno¾in strategií kromì m
 S_{-i} = S_1 \times S_2 \times \ldots \times S_{i-1} \times S_{i+1} \times \ldots \times S_N = \prod_{j \in Q \setminus \{i\}}{S_j}
 \end{equation}
 
-Slo¾ení strategie $s_i \in S_i$ a kontextu protihráèù $s_{-i} \in S_{-i}$ znaèíme následujícím zpùsobem $(s_i, s_{-i}) \in S$.
+Slo¾ení strategie $s_i \in S_i$ a kontextu protihráèù $s_{-i} \in S_{-i}$ znaèíme následujícím zpùsobem: $(s_i, s_{-i}) \in S$.
 
 \subsection{Best response}
+Nyní si definujeme pojem nejlep¹í odpovìdi na protihráèovi akce. Pøedpokládejme, ¾e protihráèi zvolí strategický profil $s_{-i}$, potom se hráè $i$ sna¾í vybrat ze svých strategií akci, která bude pro nìho nejpøínosnìj¹í. Strategii, která je nejlep¹í mo¾nou odpovìdí na akce protihráèù se nazývá \textit{best response}. Definovat ji mù¾eme takto:
 
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$, hráèe $i \in Q$ a strategický subprofil $s_{-i} \in S_{-i}$. Best response hráèe $i$ potom je:
+\begin{equation}
+BR_i(s_{-i}) = \max_{s_i \in S_i}[U_i(s_i, s_{-i})]
+\end{equation}
+obory hodnot pro funkci $BR$ jsou:
+\begin{equation}
+BR_i: S_{-i} \rightarrow 2^{S_i} \setminus \{\emptyset\}
+\end{equation}
+\end{definition}
+
+Zde je dùle¾ité upozornit, ¾e racionální hráè si v¾dy vybere strategii z mno¾iny $BR_i$.
 
 \subsection{Dominance mezi strategiemi}
+Na druhou stranu, pokud má nìkterá strategie v¾dy men¹í u¾itek ne¾ ostatní, nebude tuto strategii hráè nikdy hrát a nemusí ji tedy ani uva¾ovat. Protihráèi jsou si vìdomi toho, ¾e tato strategie nikdy hrána nebude, a proto ji také neuva¾ují. Taková strategie je nazývána dominovaná (angl. dominated). 
+
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$, strategie $s_i^1 \in S_i$ \textbf{striktnì} dominuje nad strategií $s_i^2 \in S_i$, pokud:
+
+\begin{equation}
+\forall s_{-i} \in S_{-i}: U_i(s_i^1, s_{-i}) > U_i(s_i^2, s_{-i})
+\end{equation}
+\end{definition}
+
+Existuje je¹tì druhý koncept dominance mezi strategiemi a to slabá dominance.
+
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$, strategie $s_i^1 \in S_i$ \textbf{slabì} dominuje nad strategií $s_i^2 \in S_i$, pokud:
+
+\begin{equation}
+\forall s_{-i} \in S_{-i}: U_i(s_i^1, s_{-i}) \geq U_i(s_i^2, s_{-i})
+\end{equation}
+A souèasnì
+\begin{equation}
+\exists s'_{-i} \in S_{-i}: U_i(s_i^1,s'_{-i}) > U_i(s_i^2, s_{-i})
+\end{equation}
+\end{definition}
+
+Pokud budeme dominanci strategie zkoumat oproti v¹em ostatním hráèovým strategiím zjistíme zda je strategie celkovì dominující/dominovaná.
+
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategie $s_i^1$  hráèe $i$ je ve høe striktnì dominovaná, pokud pro v¹echny strategie $s_i^2 \in S_i \setminus \{s_i^1\}$ platí, ¾e $s_i^2$ striktnì dominuje nad $s_i^1$.
+\end{definition}
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategie $s_i^1$  hráèe $i$ je ve høe striktnì dominující, pokud pro v¹echny strategie $s_i^2 \in S_i \setminus \{s_i^1\}$ platí, ¾e $s_i^1$ striktnì dominuje nad $s_i^2$.
+\end{definition}
+
+Pokud má ka¾dý hráè ze hry mezi svými strategiemi jednu strategii striktnì dominující nade v¹emi získáváme první mo¾né øe¹ení nekooperativních her: øe¹ení v dominujících strategiích (angl. dominant strategy solution~\cite[str. 10]{nisan2007algorithmic} / dominant strategy equilibrium~\cite[str. 181]{osborne1994course}).
+
+\begin{definition} \label{def:dominant_strategy_solution}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategický profil  $s^* \in S$ je øe¹ením v dominujících strategiích, pokud platí:
+\begin{equation}
+\forall i \in Q \; s_i \in S_i \setminus \{s^*\}: U_i(s^*_i, s_{-i}) \geq U_i(s_i, s_{-i})
+\end{equation}
+\end{definition}
+
 
 \section{Ryzí Nashovo ekvilibrium}
-\subsection{Intuitivní algoritmus nalezení PNE}
-\subsection{Iterativní eliminace dominovaných strategií}
+Ekvilibrium neboli rovnováha znaèí ve hrách rovnová¾ný stav. Tento bod by mìl popisovat situaci hry, která je únosná pro v¹echny hráèe a hlavnì, ¾e racionální hráèi svým uva¾ováním do tohoto bodu sami dospìjí. Tuto skuteènost taky do jisté míry dokazují experimentální studie s s chováním lidí v reálných situacích~\cite{chiappori2002testing,walker2001minimax}.
 
-\section{Efektivita profilu a Pareto dominance}
+Tato práce se bude zabývat výhradnì Nashovým ekvilibriem.
 
-\section{Smí¹ené roz¹íøení nekooperativní hry}
-\subsection{Obecný algoritmus výpoètu smí¹eného Nashova ekvilibria}
+Ekvilibrium mù¾eme pova¾ovat za urèité øe¹ení hry. Je to informace o høe, její¾ znalost mù¾e být kritická, ale na druhou stranu patøí mezi obtí¾né výpoèetní úkony~\cite{daskalakis2006complexity}.
+
+\begin{definition} \label{def:pne}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategický profil $s^* \in S$ je \textbf{ryzím Nashovým ekvilibriem} (angl. Pure Nash Equilibrium), pokud platí:
+
+\begin{equation} 
+\forall i \in Q \; \forall s_i \in S_i : U_i(s_i^*, s_{-i}^*) \geq U_i{s_i, s_{-i}^*})
+\end{equation}
+\end{definition}
+Bì¾nì~\cite{osborne1994course,nisan2007algorithmic} se tato definice interpretuje tak, ¾e ¾ádný z hráèù nemù¾e zmìnit svoji ryzí strategii a tím si zvý¹it u¾itek ze hry. Z definice~\ref{def:pne} a \ref{def:dominant_strategy_solution} vyplývá, ¾e pokud má hra øe¹ení v dominujících strategiích je toto øe¹ení zároveò jediným Nashovým ekvilibriem. 
+
+\section{Nekooperativní hra se smí¹enými strategiemi}
+Jak nám ukazují hry \textit{matching pennies}~\ref{tab:matching_pennies} nebo \textit{kámen-nù¾ky-papír}~\ref{tab:rock_scissors_paper}, ne v¹echny hry mají ryzí Nashovo ekvilibrium. Neznamená to, ¾e hra nemá ¾ádné stabilní øe¹ení, ale ¾e ka¾dý hráè hraje nedeterministicky, tedy s urèitým vlivem pravdìpodobnosti. Takové hráèovo chování se nazývá \textit{smí¹enou strategií}. Existence smí¹ených strategií u hry nazýváme \textit{smí¹eným roz¹íøením}~\cite[str. 32]{osborne1994course} nekooperativní hry.
+
+\begin{definition}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$ nazveme smí¹eným roz¹íøením hry $\Gamma$, pokud $\forall i \in Q$:
+\begin{itemize}
+\item $\Delta_i$ je mno¾ina smí¹ených strategií hráèe $i$ s prvky $\sigma_i \in \Delta_i$. Èíslo $\sigma_i(s_i)$ oznaèuje pravdìpodobnost pøiøazenou ryzí strategii $s_i \in S_i$ ve smí¹ené strategii $\sigma_i$. Mno¾inu v¹ech mno¾in smí¹ených strategií znaèíme $\Delta = \prod_i \Delta_i$.
+\begin{equation}
+\Delta_i = \left\{ \sigma_i \in \langle 0 , 1 \rangle^{m_i} | \sum_{s_i \in S_i} \sigma_i(s_i) = 1 \right\}; m_i = |S_i|
+\end{equation}
+\item Výplatní funkce hráèù / oèekávaný u¾itek (angl. expected payoff) je v ka¾dém smí¹eném profilu $\sigma \in \Delta$:
+\begin{equation}
+\pi_i(\sigma) = \sum_{s \in S} U_i(s) \cdot \left( \prod_{i \in Q} \sigma_i(s_i) \right)
+\end{equation}
+\end{itemize}
+\end{definition}
+
+\subsection{Smí¹ené Nashovo ekvilibrium}
+Ve smí¹eném roz¹íøení nekooperativní hry samozøejmì také existuje koncept Nashova ekvilibria. Ukazuje nám stabilní rozlo¾ení pravdìpodobnosti pøes hráèovy strategie po dosáhnutí stavu, kdy ¾ádný z hráèù nemá zájem tuto smí¹enou strategii mìnit. Musíme v¹ak stále mít na pamìti, ¾e nekooperativní hra je neopakovatelnou a neopakovanou událostí a celý proces nalezení ekvilibria probíhá pøed vlastním rozhodnutím o hrané strategii. Smí¹ené Nashovo ekvilibrium je mo¾no vysledovat na velkém vzorku nezávislých pokusù~\cite{chiappori2002testing,walker2001minimax}.
+
+\begin{definition}
+Mìjme hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$. Smí¹eny profil $\sigma^* \in \Delta$ nazveme smí¹ené Nashovo ekvilibrium ve høe $\Gamma^*$, pokud platí:
+\begin{equation}
+\forall i \in Q \; \forall \sigma_i \in \Delta_i \setminus \{\sigma^*\}: \pi_i(\sigma^*) \geq \pi_i(\sigma_i, \sigma_{-i}^*)
+\end{equation}
+\end{definition}
+
+Dùle¾itý pojem, který vystává u otázky smí¹eného Nashova ekvilibria a smí¹ených strategií obecnì je \textit{indiference}. Hráè, který hraje smí¹enou strategii musí mít stejný u¾itek z ka¾dé jednotlivé domény (\ref{subsec:domena}) této strategie, tedy z ka¾dé ryzí strategie hrané nenulovou pravdìpodobností. To je samozøejmé, kdyby mìl z jedné strategie u¾itek vìt¹í ne¾ ze druhé tak to je jeho best response a druhou strategii nebude vùbec hrát.
+
+\subsection{Existence smí¹eného Nashova ekvilibria}
+\begin{proposition} \label{prop:existenceNE}
+Ka¾dá koneèná nekooperativní hra má smí¹ené Nashovo equilibrium.
+\end{proposition}
+Dùkaz této vìty je mo¾no nalézt v~\cite[str. 33]{osborne1994course}. Vìta~\ref{prop:existenceNE} nám ukazuje, ¾e v ka¾dé høe, se kterou se budeme v této práci zabývat, bude minimálnì jedno smí¹ené Nashovo ekvilibrium. Tím máme vymezen teoretický základ pro hledání Nashových ekvilibrií v nekooperativních hrách.
+
+Dal¹ím zajímavým parametrem her je poèet ekvilibrií. Z obecného hlediska je zajímavá následující vìta:
+\begin{proposition}
+Ka¾dá koneèná nedegenerovaná hra má v¾dy lichý poèet ekvilibrií.~\cite[str. 62]{nisan2007algorithmic}
+\end{proposition}
+
+Odhadem poètu Nashových ekvilibrií se zabývala napøíklad práce~\cite{mclennan2005expected}, to se v¹ak pøesnì netýká jádra této práce.
 
 
-\chapter{Návrh nástroje}
+\subsection{Doména smí¹ené strategie} \label{subsec:domena}
+\textit{Doména smí¹ené strategie} (angl. support) je pojem díky, kterému se nám bude lépe pracovat se smí¹enými strategiemi pøi hledání smí¹eného Nashova ekvilibria. Také je díky ní definována degenerovanost hry~\ref{subsec:degenerovana}.
 
-\chapter{Detaily implementace}
+\begin{definition}
+Mìjme hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$ a smí¹enou strategii $\sigma_i \in \Delta_i$ hráèe $i$. Doménou smí¹ené strategie hráèe $i$ definujeme takto:
+\begin{equation}
+supp_i(\sigma_i) = \left\{ s_i \in S_i | \sigma_i(s_i) > 0 \right\} 
+\end{equation}
+\end{definition}
+
+\subsection{Degenerovaná hra} \label{subsec:degenerovana}
+\begin{definition}
+Dvouhráèová hra je \textit{nedegenerovaná} (angl. nondegenerate), pokud ¾ádná smí¹ená strategie s doménou velikosti $k$ nemá více ne¾ $k$ ryzích best response strategií.
+\end{definition}
+
+Jednoduchým testem na degenerovanost hry, je výpoèet ryzích best-response na v¹echny ryzí strategie protihráèe. Pokud hráè na jednu ryzí strategii protihráèe nalezne více ne¾ jednu best response, je tato hra degenerovaná~\cite[str. 56]{nisan2007algorithmic}.
+
+Dùle¾itou vlastností degenerovaných her je, ¾e mohou mít nekoneènì mnoho øe¹ení ve smí¹ených strategiích~\cite[str. 66]{nisan2007algorithmic}.
+
+Za pøíklad si mù¾eme vzít degenerovanou hru z pøílohy~\ref{tab:degenerate_game}. Zde je vidìt, ¾e na strategii $0$ øádkového hráèe, má sloupcový hráè hned dvì ryzí best response: $0$ a $1$. Tyto strategie jsou zároveò doménami ve smí¹eném Nashovu ekvilibriu. Tedy, øádkový hráè hraje strategii $0$ s pravdìpodobností $1,0$ a sloupcový hráè má libovolný výbìr rozlo¾ení pravdìpodobnosti pøes jeho jediné dvì strategie $0$ a $1$.
+
+\chapter{Algoritmy pro výpoèet Nashova ekvilibria}
+V této kapitole si definujeme a popí¹eme algoritmy pro nalezení Nashova ekvilibria. Pøehled o jednotlivých algoritmech a pøístupech k øe¹ení nekooperativních her lze nalézt v~\cite{mckelvey1996computation}. V této práci jsou popsány algoritmy pro øe¹ení dvouhráèových a vícehráèových her. Za základní algoritmy se tu pova¾ují algoritmus Lemke-Howson~\cite{lemke1964equilibrium} pro dvouhráèové hry a simplical subdivision pro hry vícehráèové.
+\section{Intuitivní algoritmus nalezení ryzího Nashova ekvilibria}
+\section{Iterativní eliminace dominovaných strategií}
+\section{Obecný algoritmus výpoètu smí¹eného Nashova ekvilibria}
+\section{Algoritmus pro nalezení NE ve vícehráèových hrách}
+\subsection{Lyapunova funkce}
+\subsection{Covariance Matrix Adaptation - Evolution Strategy}
+	
+\chapter{Implementace}
+
+\chapter{Experimenty}
 
 \chapter{Závìr}
 

@@ -25,6 +25,7 @@
 \usepackage[latin2]{inputenc}
 \usepackage[T1, IL2]{fontenc}
 \usepackage{url}
+\usepackage{amsthm}
 \DeclareUrlCommand\url{\def\UrlLeft{<}\def\UrlRight{>} \urlstyle{tt}}
 
 %zde muzeme vlozit vlastni balicky
@@ -99,8 +100,15 @@
 %Podekovani (nepovinne)
 %\acknowledgment{V této sekci je mo¾no uvést podìkování vedoucímu práce a tìm, kteøí poskytli odbornou pomoc
 %(externí zadavatel, konzultant, apod.).}
+\theoremstyle{definition}
+\newcounter{definitioncounter}
+\renewcommand{\thedefinitioncounter}{\arabic{definitioncounter}}
+\newtheorem{definition}[definitioncounter]{Definice}
 
-\newtheorem{definition}{Definition}[section]
+\theoremstyle{theorem}
+\newcounter{propositioncounter}
+\renewcommand{\thepropositioncounter}{\arabic{propositioncounter}}
+\newtheorem{proposition}[propositioncounter]{Vìta}
 \begin{document}
   % Vysazeni titulnich stran
   % ----------------------------------------------

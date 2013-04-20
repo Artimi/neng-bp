@@ -4,3 +4,35 @@
 %\chapter{RelaxNG Schéma konfiguraèního soboru}
 %\chapter{Plakat}
 
+\chapter{Hry v normální formì}
+\begin{table}[h]
+\begin{center}
+\caption{Matching pennies}
+\begin{tabular}{|c|c|c|} \hline  \label{tab:matching_pennies}
+A / B & heads & tails \\ \hline
+heads & 1, -1 & -1, 1 \\ \hline
+tails & -1, 1 & 1, -1 \\ \hline
+\end{tabular}
+
+
+\vspace{2em}
+\caption{Kámen-nù¾ky-papír}
+\begin{tabular}{|c|c|c|c|} \hline \label{tab:rock_scissors_paper}
+A / B & kámen & nù¾ky & papír \\ \hline
+kámen & 0, 0  & 1, -1 & -1, 1 \\ \hline
+nù¾ky & -1, 1 & 0, 0  & 1, -1 \\ \hline
+papír & 1, -1 & -1, 1 & 0, 0  \\ \hline
+\end{tabular}
+
+
+\vspace{2em}
+\caption{Degenerovaná hra}
+\begin{tabular}{|c|c|c|} \hline \label{tab:degenerate_game}
+A / B  	& 0 	& 1 	\\ \hline
+0 		& 1, 1  & 1, 1 	\\ \hline
+1 		& 0, 2 	& 0, 3	\\ \hline
+2 		& 0, 2 	& 2, 0  \\ \hline
+\end{tabular}
+
+\end{center}
+\end{table}
