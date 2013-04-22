@@ -3,14 +3,13 @@
 
 from __future__ import division
 import numpy as np
-import exceptions
 import shlex
 import itertools
 import ipdb
 from operator import mul
 import scipy.optimize
 import sys
-import games_result
+#import games_result
 import logging
 import cmaes
 import cma
@@ -26,6 +25,7 @@ class Game(object):
         self.players_zeros = np.zeros(self.num_players)
         self.brs = None
         self.degenerated = None
+        self.deleted_strategies = None
 
     def bestResponse(self, player, strategy):
         """
@@ -52,7 +52,7 @@ class Game(object):
 
     def getDominatedStrategies(self):
         """
-        @return list of players dominated strategies
+        @return list of players' dominated strategies
         """
         empty = [slice(None)] * self.num_players
         result = []
@@ -64,17 +64,40 @@ class Game(object):
                 s1[player] = strategy
                 strategies.append(self.array[player][s1])
             for strategy in range(self.shape[player]):
-                dominated = True
+                dominated = False
                 for strategy2 in range(self.shape[player]):
                     if strategy == strategy2:
                         continue
-                    elif (strategies[strategy] >= strategies[strategy2]).any():
-                        dominated = False
+                    elif (strategies[strategy] < strategies[strategy2]).all():
+                        dominated = True
                         break
                 if dominated:
                     dominated_strategies.append(strategy)
             result.append(dominated_strategies)     
         return result
+
+    def iteratedEliminationDominatedStrategies(self):
+        """
+        Eliminates all strict dominated strategies, preserve self.array and
+        self.shape in self.init_array and self.init_shape. Stores numbers of
+        deleted strategies in self.deleted_strategies.
+        """
+        self.init_array = self.array[:]
+        self.init_shape = self.shape[:]
+        self.deleted_strategies = [np.array([], dtype=int) for player in range(self.num_players)]
+        dominated_strategies = self.getDominatedStrategies()
+        while sum(map(len, dominated_strategies)) != 0:
+            logging.debug("Dominated strategies to delete: {0}".format(dominated_strategies))
+            for player, strategies in enumerate(dominated_strategies):
+                for p in range(self.num_players):
+                    self.array[p] = np.delete(self.array[p], strategies, player)
+                for strategy in strategies:
+                    self.deleted_strategies[player] = np.append(self.deleted_strategies[player], strategy + np.sum(self.deleted_strategies[player] <= strategy))
+                self.shape[player] -= len(strategies)
+            self.sum_shape = sum(self.shape)
+            dominated_strategies = self.getDominatedStrategies()
+        for player in range(self.num_players):
+            self.deleted_strategies[player].sort()
 
     def getPNE(self):
         """
@@ -427,7 +450,15 @@ class Game(object):
         if self.degenerated:
             logging.warning("Game is degenerated")
         for ne in nes:
-            probabilities = ["%.3f" % abs(p) for p in ne]
+            print_ne = list(ne)
+            # assure that printed result are in same shape as self.init_shape
+            if self.deleted_strategies is not None:
+                acc = 0
+                for player in range(self.num_players):
+                    for deleted_strategy in self.deleted_strategies[player]:
+                        print_ne.insert(acc + deleted_strategy, 0.0)
+                    acc += self.init_shape[player]
+            probabilities = ["%.3f" % abs(p) for p in print_ne]
             result += "NE " + ", ".join(probabilities) + "\n"
             if payoff:
                 s = []
@@ -478,6 +509,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
+    parser.add_argument('-e', '--elimination', action='store_true', default=False)
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
     parser.add_argument('-c', '--checkNE', action='store_true', default=False)
     parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO",
@@ -491,20 +523,22 @@ if __name__ == '__main__':
     with open(args.file) as f:
         game_str = f.read()
     g = Game(game_str)
+    if args.elimination:
+        g.iteratedEliminationDominatedStrategies()
     result = g.findEquilibria(args.method)
     if result is not None:
         print g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)
     else:
         sys.exit("Nash equilibrium was not found.")
-    filename = os.path.basename(args.file)
-    for r in result:
-        if filename in games_result.r:
-            found = False
-            for gr in games_result.r[filename]:
-                if np.allclose(r, gr, atol=1e-2, rtol=0):
-                    found = True
-                    break
-            if found  == False:
-                print "NE {0} was not found in results.".format(r)
+    #filename = os.path.basename(args.file)
+    #for r in result:
+        #if filename in games_result.r:
+            #found = False
+            #for gr in games_result.r[filename]:
+                #if np.allclose(r, gr, atol=1e-2, rtol=0):
+                    #found = True
+                    #break
+            #if found  == False:
+                #print "NE {0} was not found in results.".format(r)
     #g.checkNE([0.500,0.500,0.333,0.667])
 # zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky
