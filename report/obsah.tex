@@ -2,7 +2,7 @@
 % (c) Michal Bidlo, Bohuslav Køena, 2008
 
 \chapter{Úvod}
-ùkolem této práce bylo vytvoøit program pro ...
+úkolem této práce bylo vytvoøit program pro ...
 
 nekooperativní hry jsou dùle¾ité...
 \chapter{Teorie her}
@@ -54,7 +54,7 @@ Slo¾ení strategie $s_i \in S_i$ a kontextu protihráèù $s_{-i} \in S_{-i}$ znaèím
 \subsection{Best response}
 Nyní si definujeme pojem nejlep¹í odpovìdi na protihráèovi akce. Pøedpokládejme, ¾e protihráèi zvolí strategický profil $s_{-i}$, potom se hráè $i$ sna¾í vybrat ze svých strategií akci, která bude pro nìho nejpøínosnìj¹í. Strategii, která je nejlep¹í mo¾nou odpovìdí na akce protihráèù se nazývá \textit{best response}. Definovat ji mù¾eme takto:
 
-\begin{definition}
+\begin{definition} \label{def:best_response}
 Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$, hráèe $i \in Q$ a strategický subprofil $s_{-i} \in S_{-i}$. Best response hráèe $i$ potom je:
 \begin{equation}
 BR_i(s_{-i}) = \max_{s_i \in S_i}[U_i(s_i, s_{-i})]
@@ -67,7 +67,7 @@ BR_i: S_{-i} \rightarrow 2^{S_i} \setminus \{\emptyset\}
 
 Zde je dùle¾ité upozornit, ¾e racionální hráè si v¾dy vybere strategii z mno¾iny $BR_i$.
 
-\subsection{Dominance mezi strategiemi}
+\subsection{Dominance mezi strategiemi} \label{sec:dominance}
 Na druhou stranu, pokud má nìkterá strategie v¾dy men¹í u¾itek ne¾ ostatní, nebude tuto strategii hráè nikdy hrát a nemusí ji tedy ani uva¾ovat. Protihráèi jsou si vìdomi toho, ¾e tato strategie nikdy hrána nebude, a proto ji také neuva¾ují. Taková strategie je nazývána dominovaná (angl. dominated). 
 
 \begin{definition}
@@ -94,8 +94,8 @@ A souèasnì
 
 Pokud budeme dominanci strategie zkoumat oproti v¹em ostatním hráèovým strategiím zjistíme zda je strategie celkovì dominující/dominovaná.
 
-\begin{definition}
-Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategie $s_i^1$  hráèe $i$ je ve høe striktnì dominovaná, pokud pro v¹echny strategie $s_i^2 \in S_i \setminus \{s_i^1\}$ platí, ¾e $s_i^2$ striktnì dominuje nad $s_i^1$.
+\begin{definition} \label{def:strictly_dominated_strategy}
+Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategie $s_i^1$  hráèe $i$ je ve høe striktnì dominovaná, pokud existuje jedna strategie $s_i^2 \in S_i \setminus \{s_i^1\}$ taková, ¾e $s_i^2$ striktnì dominuje nad $s_i^1$.
 \end{definition}
 \begin{definition}
 Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategie $s_i^1$  hráèe $i$ je ve høe striktnì dominující, pokud pro v¹echny strategie $s_i^2 \in S_i \setminus \{s_i^1\}$ platí, ¾e $s_i^1$ striktnì dominuje nad $s_i^2$.
@@ -110,6 +110,7 @@ Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Strategický profi
 \end{equation}
 \end{definition}
 
+Existuje je¹tì pojem dominance smí¹ené strategie nad ryzí strategií. Tuto v¹ak pro vysokou výpoèetní nároènost nebudeme uva¾ovat.
 
 \section{Ryzí Nashovo ekvilibrium}
 Ekvilibrium neboli rovnováha znaèí ve hrách rovnová¾ný stav. Tento bod by mìl popisovat situaci hry, která je únosná pro v¹echny hráèe a hlavnì, ¾e racionální hráèi svým uva¾ováním do tohoto bodu sami dospìjí. Tuto skuteènost taky do jisté míry dokazují experimentální studie s s chováním lidí v reálných situacích~\cite{chiappori2002testing,walker2001minimax}.
@@ -134,8 +135,8 @@ Jak nám ukazují hry \textit{matching pennies}~\ref{tab:matching_pennies} nebo \t
 Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$ nazveme smí¹eným roz¹íøením hry $\Gamma$, pokud $\forall i \in Q$:
 \begin{itemize}
 \item $\Delta_i$ je mno¾ina smí¹ených strategií hráèe $i$ s prvky $\sigma_i \in \Delta_i$. Èíslo $\sigma_i(s_i)$ oznaèuje pravdìpodobnost pøiøazenou ryzí strategii $s_i \in S_i$ ve smí¹ené strategii $\sigma_i$. Mno¾inu v¹ech mno¾in smí¹ených strategií znaèíme $\Delta = \prod_i \Delta_i$.
-\begin{equation}
-\Delta_i = \left\{ \sigma_i \in \langle 0 , 1 \rangle^{m_i} | \sum_{s_i \in S_i} \sigma_i(s_i) = 1 \right\}; m_i = |S_i|
+\begin{equation} \label{eq:set_mixed_strategies}
+\Delta_i = \left\{ \sigma_i \in \langle 0 , 1 \rangle^{m_i} | \sum_{s_j \in S_i} \left( \sigma_{ij} = \sigma_i(s_j) \right) = 1 \right\}; m_i = |S_i|
 \end{equation}
 \item Výplatní funkce hráèù / oèekávaný u¾itek (angl. expected payoff) je v ka¾dém smí¹eném profilu $\sigma \in \Delta$:
 \begin{equation}
@@ -143,6 +144,8 @@ Mìjme hru $\Gamma = (Q;\{S_i\}_{i \in Q}; \{U_i\}_{i \in Q})$. Hru $\Gamma^m = (
 \end{equation}
 \end{itemize}
 \end{definition}
+
+V dal¹ím textu budeme potøebovat slo¾ení ryzí strategie se strategií smí¹enou. To budeme pro jednoduchost znaèit $(s_i,\sigma_{-i})$, kde $i \in Q$, $s_i \in S_i$ a $\sigma_{-i}$. Tento zápis znamená, ¾e smí¹ená strategie se skládá ze strategií protihráèù a jedné ryzí strategie hráèe $i$.
 
 \subsection{Smí¹ené Nashovo ekvilibrium}
 Ve smí¹eném roz¹íøení nekooperativní hry samozøejmì také existuje koncept Nashova ekvilibria. Ukazuje nám stabilní rozlo¾ení pravdìpodobnosti pøes hráèovy strategie po dosáhnutí stavu, kdy ¾ádný z hráèù nemá zájem tuto smí¹enou strategii mìnit. Musíme v¹ak stále mít na pamìti, ¾e nekooperativní hra je neopakovatelnou a neopakovanou událostí a celý proces nalezení ekvilibria probíhá pøed vlastním rozhodnutím o hrané strategii. Smí¹ené Nashovo ekvilibrium je mo¾no vysledovat na velkém vzorku nezávislých pokusù~\cite{chiappori2002testing,walker2001minimax}.
@@ -154,7 +157,7 @@ Mìjme hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$. Smí¹eny
 \end{equation}
 \end{definition}
 
-Dùle¾itý pojem, který vystává u otázky smí¹eného Nashova ekvilibria a smí¹ených strategií obecnì je \textit{indiference}. Hráè, který hraje smí¹enou strategii musí mít stejný u¾itek z ka¾dé jednotlivé domény (\ref{subsec:domena}) této strategie, tedy z ka¾dé ryzí strategie hrané nenulovou pravdìpodobností. To je samozøejmé, kdyby mìl z jedné strategie u¾itek vìt¹í ne¾ ze druhé tak to je jeho best response a druhou strategii nebude vùbec hrát.
+Dùle¾itý pojem, který vystává u otázky smí¹eného Nashova ekvilibria a smí¹ených strategií obecnì je \textit{indiference}. Hráè, který hraje smí¹enou strategii musí mít stejný u¾itek z ka¾dé jednotlivé domény (\ref{subsec:domena}) této strategie, tedy z ka¾dé ryzí strategie hrané nenulovou pravdìpodobností.~\cite[str. 33]{osborne1994course} To je samozøejmé, kdyby mìl z jedné strategie u¾itek vìt¹í ne¾ ze druhé tak to je jeho best response a druhou strategii nebude vùbec hrát.
 
 \subsection{Existence smí¹eného Nashova ekvilibria}
 \begin{proposition} \label{prop:existenceNE}
@@ -166,9 +169,6 @@ Dal¹ím zajímavým parametrem her je poèet ekvilibrií. Z obecného hlediska je zají
 \begin{proposition}
 Ka¾dá koneèná nedegenerovaná hra má v¾dy lichý poèet ekvilibrií.~\cite[str. 62]{nisan2007algorithmic}
 \end{proposition}
-
-Odhadem poètu Nashových ekvilibrií se zabývala napøíklad práce~\cite{mclennan2005expected}, to se v¹ak pøesnì netýká jádra této práce.
-
 
 \subsection{Doména smí¹ené strategie} \label{subsec:domena}
 \textit{Doména smí¹ené strategie} (angl. support) je pojem díky, kterému se nám bude lépe pracovat se smí¹enými strategiemi pøi hledání smí¹eného Nashova ekvilibria. Také je díky ní definována degenerovanost hry~\ref{subsec:degenerovana}.
@@ -185,21 +185,276 @@ supp_i(\sigma_i) = \left\{ s_i \in S_i | \sigma_i(s_i) > 0 \right\}
 Dvouhráèová hra je \textit{nedegenerovaná} (angl. nondegenerate), pokud ¾ádná smí¹ená strategie s doménou velikosti $k$ nemá více ne¾ $k$ ryzích best response strategií.
 \end{definition}
 
-Jednoduchým testem na degenerovanost hry, je výpoèet ryzích best-response na v¹echny ryzí strategie protihráèe. Pokud hráè na jednu ryzí strategii protihráèe nalezne více ne¾ jednu best response, je tato hra degenerovaná~\cite[str. 56]{nisan2007algorithmic}.
+Jednoduchým testem na degenerovanost hry, je výpoèet ryzích best-response na v¹echny ryzí strategie protihráèe. Pokud hráè na jednu ryzí strategii protihráèe nalezne více ne¾ jednu best response, je tato hra degenerovaná~\cite[str. 56]{nisan2007algorithmic}. Z této nutné rovnosti velikosti domén nám vyplývá následující vìta.
+
+\begin{proposition} \label{prop:same_length_support}
+V jakémkoli Nashovu ekvilibriu nedegenerované dvouhráèové hry, mají smí¹ené strategie toho ekvilibria domény stejné délky.~\cite[str. 56]{nisan2007algorithmic}
+\end{proposition}
 
 Dùle¾itou vlastností degenerovaných her je, ¾e mohou mít nekoneènì mnoho øe¹ení ve smí¹ených strategiích~\cite[str. 66]{nisan2007algorithmic}.
 
 Za pøíklad si mù¾eme vzít degenerovanou hru z pøílohy~\ref{tab:degenerate_game}. Zde je vidìt, ¾e na strategii $0$ øádkového hráèe, má sloupcový hráè hned dvì ryzí best response: $0$ a $1$. Tyto strategie jsou zároveò doménami ve smí¹eném Nashovu ekvilibriu. Tedy, øádkový hráè hraje strategii $0$ s pravdìpodobností $1,0$ a sloupcový hráè má libovolný výbìr rozlo¾ení pravdìpodobnosti pøes jeho jediné dvì strategie $0$ a $1$.
 
 \chapter{Algoritmy pro výpoèet Nashova ekvilibria}
-V této kapitole si definujeme a popí¹eme algoritmy pro nalezení Nashova ekvilibria. Pøehled o jednotlivých algoritmech a pøístupech k øe¹ení nekooperativních her lze nalézt v~\cite{mckelvey1996computation}. V této práci jsou popsány algoritmy pro øe¹ení dvouhráèových a vícehráèových her. Za základní algoritmy se tu pova¾ují algoritmus Lemke-Howson~\cite{lemke1964equilibrium} pro dvouhráèové hry a simplical subdivision pro hry vícehráèové.
-\section{Intuitivní algoritmus nalezení ryzího Nashova ekvilibria}
+V této kapitole si definujeme a popí¹eme algoritmy pro nalezení Nashova ekvilibria. Nejprve si pøedstavíme algoritmus pro hledání ryzích Nashových ekvilibrií hrubou silou, poté algoritmus pro nalezení smí¹eného Nashova ekvilibria ve dvouhráèových hrách a nakonec algoritmus pro nalezení smí¹eného Nashova ekvilibria ve hrách vícehráèových.
+
+Pøehled o jednotlivých algoritmech a pøístupech k øe¹ení nekooperativních her lze nalézt v~\cite{mckelvey1996computation}. V této práci jsou popsány algoritmy pro øe¹ení dvouhráèových a vícehráèových her. Za základní algoritmy se tu pova¾ují algoritmus Lemke-Howson~\cite{lemke1964equilibrium} pro dvouhráèové hry a simplical subdivision pro hry vícehráèové. Také je pøedstavena metoda minimalizace funce Lyapunovy funkce~\cite{mckelvey1998laipunov}, která bude pou¾ita jako stì¾ejní algoritmus této práce spolu s metodou minimalizace funkce Covariance Matrix Adaptation - Evolution Strategy~\cite{hansen2011cma}.
+
+\section{Nalezení ryzího Nashova ekvilibria hrubou silou} \label{sec:hrubou_silou}
+Pokud je na¹ím úkolem nalézt pouze ryzí Nashova ekvilibria v obecnì n-hráèové høe, budeme vycházet z definic best-response~\ref{def:best_response} a ryzí Nashova ekvilibria~\ref{def:pne}. Po¾adavkem v~\ref{def:pne} je, aby ¾ádný hráè nemìl nutkání mìnit svou ryzí strategii na strategii jinou. Jinými slovy si ka¾dý hráè vybírá nejlep¹í mo¾nou strategii s ohledem na akce soupeøù. To je v¹ak definice best response. Mù¾eme tedy øíci~\cite[str. 15]{osborne1994course}, ¾e Nashovo ekvilibrium je takovým strategickým profilem, kde v¹ichni hráèi hrají svoji best response. Zapsáno algoritmem:
+
+\begin{algorithm}
+\caption{Nalezení Nashova ekvilibria hrubou silou} \label{alg:pne_brute_force}
+\begin{algorithmic}
+\ForAll{$i \in Q$}
+	\ForAll{$s_{-i} \in S_{-i} $}
+	\State $BRpne_i \gets (BR_i(s_{-i}), s_{-i})$
+	\EndFor
+\EndFor
+\State $PNE \gets \bigcap_{i \in Q} BRpne_i$
+\State \Return $PNE$
+\end{algorithmic}
+\end{algorithm}
+
+Algoritmus tedy zjistí best response v¹ech hráèù na v¹echny mo¾né sub-profily protihráèù. Ka¾dý hráè má potom mno¾inu strategických profilù, kde jeho akce je jeho best response. Vytvoøením prùniku tìchto mno¾in dostaneme mno¾inu profilù, které jsou ryzími Nashovými ekvilibrii.
+
 \section{Iterativní eliminace dominovaných strategií}
-\section{Obecný algoritmus výpoètu smí¹eného Nashova ekvilibria}
+V sekci~\ref{sec:dominance} jsme si pøedstavili øe¹ení v dominujících strategiích. Tyto øe¹ení v¹ak jsou vzácná. Co, ale pøi øe¹ení výpoètu Nashova ekvilibria pou¾ít mù¾eme je znalost, ¾e racionální hráèi nebudou nikdy hrát striktnì dominované strategie. Pokud v¹echny takové strategie ze hry vyøadíme, hra bude ekvivalentní (v¹ichni racionální hráèi projevují stejné strategické chování) a zároveò zjednodu¹íme slo¾itost dané hry. Také je mo¾nost, ¾e danou hru zjednodu¹íme a¾ na stav, kdy ka¾dý hráè má jen jednu nedominovanou strategii a tím nalezneme i jediné Nashovo ekvilibrium.
+
+Algoritmus nejdøíve zjistí zda hra obsahuje striktnì dominované strategie. Pokud ano tak tyto ze hry eliminuje. Mù¾e se stát, ¾e odstranìním strategie jednoho hráèe, se stane dominovanou stategií strategie hráèe druhého, proto tento algoritmus stále testuje zda hra neobsahuje striktnì dominované strategie, a pokud ano tak je odstraòuje.
+
+
+\begin{algorithm}
+\caption{Iterativní eliminace dominovaných strategií} \label{alg:iterative_elimination}
+\begin{algorithmic}
+
+\State $dominated\_strategies \gets getDominatedStrategies()$
+\While{$dominated\_strategies \neq \emptyset$}
+	\State Delete dominated strategies from game
+	\State $dominated\_strategies \gets getDominatedStrategies()$
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+
+Funkce \texttt{getDominatedStrategies()} vrací striktnì dominované strategie podle definice~\ref{def:strictly_dominated_strategy}.
+
+Tento algoritmus vede k nalezení Nashova ekvilibria napøíklad u hry \textit{prisoner's dilemma}~\ref{tab:prisoners_dilemma}.
+
+\section{Algoritmus výpoètu smí¹eného Nashova ekvilibria ve dvouhráèových hrách}
+Pøi nalézání smí¹eného Nashova ekvilibria u¾ nevystaèíme s algoritmem~\ref{sec:hrubou_silou}. Zde je potøeba vypoèítat rozlo¾ení pravdìpodobnosti pøes hráèovy strategie. Pou¾ijeme algoritmus vyèíslení domén (angl. support enumeration~\cite[str. 56]{nisan2007algorithmic}). Tento algoritmus poèítá pouze s nedegenerovanými dvouhráèovými hrami.
+
+V algoritmu vyèíslení domén se vychází z následujících pøedpokladù:
+\begin{itemize}
+\item Vstupní hra musí být nedegenerovaná.
+\item Hledané Nashovo ekvilibrium bude mít domény stejné délky~\ref{prop:same_length_support}.
+\item Hráè musí být mezi v¹emi svými strategiemi v doménì indiferentní, tedy musí z nich mít stejný u¾itek.
+\item Jednotlivé ryzí strategie z domény smí¹ené strategie výsledného Nashova ekvilibria musí patøit také do mno¾iny best response hráèe. V algoritmu by se potom mohlo stát, ¾e nalezneme øe¹ení, ale toto øe¹ení bude platit jen pro právì poèítané strategie a nikoli pro celou hru.
+\end{itemize}
+
+\begin{algorithm}
+\caption{Vyèíslení domén} \label{alg:support_enumeration}
+\begin{algorithmic}
+\For{$k = 1, ... , \min(m_1, m_2)$}
+	\ForAll{$(I,J): I \subseteq S_1, S_2 \subseteq S_2, |I| = |J| = k$}
+	\State $\sum_{i \in I} x_i b_{ij} = v$ for $j \in J$
+	\State $\sum_{i \in I} x_i = 1$
+	\State $\sum_{j \in J} y_j a_{ij} = u$ for $i \in I$
+	\State $\sum_{j \in J} y_j = 1$
+	\If{$x \geq \textbf{0}$ and $y \geq \textbf{0}$ and x is best response to y and y is best reponse to x}
+	\State $PNE \gets (x, y)$
+	\Comment{x and y are naturally surrounded by zeros of strategies what are not in I or J}
+	\EndIf
+	\EndFor
+\EndFor
+\State \Return PNE
+\end{algorithmic}
+\end{algorithm}
+
+V pøípadì, ¾e lineární rovnice v tomto algoritmu nemají øe¹ení, není hledané Nashovo ekvilibrium v podmno¾inì strategií a musí se proto hledat dál. Výstupem programu jsou potom v¹echny Nashovy ekvilibria této hry.
+
 \section{Algoritmus pro nalezení NE ve vícehráèových hrách}
+Hlavním a nejslo¾itìj¹ím úkolem této práce je nalézt alespoò jedno Nashovo ekvilibrium ve vícehráèových hrách (t.j. $N>2$). Jak u¾ bylo zmínìno za standard se pøi výpoètu Nashových ekvilibrií ve vícehráèových hrách pova¾uje algoritmus \textit{simplicial subdivision}. V této práci byla v¹ak pou¾ita více experimentální metoda a to minimalizace Lyapunovy funkce pomocí evoluèního algoritmu \textit{adaptace kovarianèní matice - evoluèní strategie} (angl. Covariance Matrix Adaptation - Evolution Strategy, CMA-ES).
+
+Pokud budeme brát poèet výpoètù Lyapunovy funkce za parametr rozhodující o nároènosti algoritmu, tak byla metoda CMA-ES vyhodnocena jako nej¹etrnìj¹í v testu mezi dal¹ími inteligentními metodami (optimalizace hejnem èástic - angl. particle swarm optimization, diferenciální evoluce - angl. differential evolution)~\cite{pavlidis2005computing}.
+
+Na CMA-ES také stále probíhá aktivní vývoj a její autor, Nikolaus Hansen, ji stále zpøesòuje a pøidává nové vlastnosti. Je také autorem pøepisù této metody do mnoha programovacích jazykù. Metoda CMA-ES se prokazuje být velice úspì¹nou pro tzv.  \textit{black-box} optimalizaci, a pøes svou relativní novost byla ji¾ mnohokrát aplikována ve vìdeckém výzkumu~\cite{hansen2005references}.
+
 \subsection{Lyapunova funkce}
+Lyapunova funkce se pou¾ívá pro prokázání stability ekvilibria obyèejných diferenciálních rovnic. V této práci ji pou¾ijeme jako objektivní funkci, její¾ optimalizací získáme smí¹ené Nashovo ekvilibrium. Pøi její definici budeme vycházet z~\cite{mckelvey1998laipunov}.
+
+\begin{definition} \label{def:lyapunov_function}
+Mìjme hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$. Smí¹enou strategii $\sigma \in \Delta$. Lyapunova funkce $v$ s oborem hodnot:
+\begin{equation}
+v: \Delta \rightarrow \mathbb{R}
+\end{equation}
+je definována jako:
+\begin{equation}
+v(\sigma) = \sum_{i \in Q} \sum_{s_i \in S_i} \left\{ \max \left[ U_i(s_{ij}, \sigma_{-i}) - U_i(\sigma), 0) \right]   \right\}^2
+\end{equation}
+\end{definition}
+
+Interpretovat tuto funkci lze takto: pokud existuje nìjaká ryzí strategie, kterou hráè $i$ dosáhne lep¹ího u¾itku ne¾ z vlastního strategického subprofilu $\sigma$, je funkce nenulová. Pokud pro v¹echny hráèe ¾ádná taková ryzí strategie neexistuje funkce se rovná nule.
+
+\begin{proposition}
+Funkce $v: \Delta \rightarrow \mathbb{R}$ definovaná v~\ref{def:lyapunov_function} rovna hodnotì $0$ odpovídá Nashovu ekvilibriu koneèné hry $U: \Delta \rightarrow \mathbb{R}^N$~\cite[str. 2]{mckelvey1998laipunov}.
+\end{proposition}
+
+Dùkaz této vìty mù¾eme najít na~\cite[str. 3]{mckelvey1998laipunov}.
+
+Pro úèely vlastní minimalizace funkce je vhodné pøidat k funkci $v$ penalizaci  pro body, které nele¾í v $\Delta$ podle~\ref{eq:set_mixed_strategies}.
+
+\begin{equation}
+w(\sigma) = v(\sigma) + \sum_{i \in Q}\sum_{j \in m_i} \left\{ \min[\sigma_{ij}, 0] + \max[\sigma_{ij},1] -1 \right\}^2 + \sum_{i \in Q} \left( 1 - \sum_{j \in m_i} p_{ij} \right)^2 
+\end{equation}
+
+V~\cite{pavlidis2005computing} je pou¾ita jen funkce $v$ a pro zaji¹tìní~\ref{eq:set_mixed_strategies} je pou¾ita normalizace pøes hodnoty zkoumaného bodu:
+\begin{equation}
+\sigma_{ij}^p = \frac{\| \sigma_{ij} \|}{\sum_{j=1}^{m_i} \| \sigma_{ij} \|}
+\end{equation}
+
+Pøièem¾ normalizace probíhá pouze pro výpoèet hodnoty funkce, pùvodní zkoumaný strategický profil je zachován a nenahrazen opraveným profilem, 
+ jinak by byla pou¾itá metoda minimalizace výraznì degradována~\cite[str. 123]{pavlidis2005computing}. Toto øe¹ení se podle autorovy zku¹enosti ukázalo jako ménì efektivní a proto nebylo v práci pou¾ito.
+
 \subsection{Covariance Matrix Adaptation - Evolution Strategy}
-	
+
+CMA-ES je stochastická metoda pro optimalizaci nelineárních, nekonvexních funkcí s reálnými parametry (se spojitou doménou). Pracuje na principu adaptace kovarianèní matice pro pou¾ití u \textit{vícerozmìrného normálního rozdìlení} (angl. mutlivariate normal distribution), kterým se vzorkují nové hledané body. Tato metoda zde bude pou¾ita pro \textit{jednokriteteriální optimalizaci} (angl. single-objective optimization) Lyapunovy funkce~\ref{def:lyapunov_function}. Pracuje pouze s objektivní funkcí, jedná se tedy o takzvanou \textit{black-box} optimalizaci. V následujících sekcích budu vycházet ze~\cite{hansen2011cma, hansen2006cma}. Metoda CMA-ES zde bude pøedstavena jen v takové míøe jaká je dùle¾itá pro tuto práci, tzn. pøehledovì, pro hlub¹í pochopení souvislostí je tøeba proèíst dané materiály.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/ellipsoids_cma}
+\caption{Pøehled elipsoidù znaèící stejnou hustotu dvourozmìrného normálního rozlo¾ení. Kde $\sigma \in \mathbb{R}_+$, $\textbf{I}$ je jednotková matice, $\textbf{D}$ je diagonální matice, $\textbf{C}$ je symetrická pozitivnì definitivní matice. Tenké linky znaèí vrstevnice objektivní funkce.~\cite[str. 6]{hansen2011cma}}
+\label{fig:ellipsoids_cma}
+\end{figure}
+
+\subsubsection{Vícerozmìrné normální rozlo¾ení}
+Vícerozmìrné normální rozdìlení je zobecnìním normálního rozdìlení pro vícerozmìrnou náhodou velièinu. Je znaèeno $\mathcal{N}(\textbf{m}, \textbf{C})$, kde $\textbf{m} \in \mathbb{R}^N$ je støední hodnota rozlo¾ení a $\textbf{C} \in \mathbb{R}^{N \times N}$ je symetrická pozitivnì definitivní kovarianèní matice.
+
+Kovarianèní matice mají pro potøeby této metody pøíjemnou geometrickou interpretaci: mohou být pova¾ovány za hyperelipsoid $\left\{ \mathbf{x} \in \mathbb{R}^N | \mathbf{x}^T \mathbf{C}^{-1} \mathbf{x} = 1 \right\}$ (Obrázek~\ref{fig:ellipsoids_cma}). Hlavní osy tohoto elipsoidu odpovídají vlastním vektorùm této matice. Odmocnìné délky tìchto os odpovídají vlastním èíslùm matice. Rozklad na vlastní èísla a vektory (angl. eigendecomposition) je mo¾no zapsat jako $\textbf{C} = \textbf{B} (\textbf{D})^2 \textbf{B}^T$. Kde $\textbf{B} \in \mathbb{R}^{N \times N}$ je ortogonální matice, se sloupci odpovídajícím vlastním vektorùm matice $\textbf{C}$. $\textbf{D} \in \mathbb{R}^{N \times N}$ je diagonální matice, kde odmocnìné diagonální prvky jsou vlastními èísly matice $\textbf{C}$ .
+
+\subsubsection{Vzorkování dal¹í generace}
+Nová generace je v CMA-ES vytvoøena pomocí vzorkování vícerozmìrného normálního rozlo¾ení.
+
+\begin{equation}
+\textbf{x}_k^{(g+1)} \sim \mathcal{N} \left( \textbf{m}^{(g)}, \sigma^{(g)^2} \textbf{C}^{(g)} \right), k = 1,\dots, \lambda
+\end{equation}
+kde:
+\begin{description}
+\item $\sim$ - stejná distribuce
+\item $g$ - èíslo generace
+\item $\mathcal{N} \left( \textbf{m}^{(g)},  \sigma^{(g)^2} \textbf{C}^{(g)} \right)$ - vícerozmìrné normální rozlo¾ení
+\item $\textbf{x}_k^{(g+1)} \in \mathbb{R}^N$ - k-tý potomek nové generace
+\item $\textbf{m}^{(g)} \in \mathbb{R}^N$ - støední hodnota normálního rozlo¾ení
+\item $\sigma^{(g)} \in \mathbb{R}_+$ - velikost kroku
+\item $\textbf{C}^{(g)} \in \mathbb{R}^{N \times N}$ - kovarianèní matice
+\item $\lambda > 2$ - velikost populace, poèet potomkù
+\end{description}
+
+\subsubsection{Výpoèet støední hodnoty nové generace}
+Ka¾dou generaci se pøepoèítává støední hodnota vícerozmìrného rozlo¾ení. Tento bod by se mìl ka¾dou generací blí¾it k hledanému minimu. Rovnice~\ref{eq:update_mean} vyjadøuje rekombinaci støední hodnoty a zároveò je v ní provedena selekce nejlep¹ích bodù.
+
+\begin{equation} \label{eq:update_mean}
+\textbf{m}^{(g+1)} = \sum_{i=1}^\mu w_i \textbf{x}_{i:\lambda}^{(g+1)}
+\end{equation}
+\begin{equation} \label{eq:weights}
+w_1 \geq w_2 \geq \dots \geq w_{\mu} > 0,\quad \sum_{i=1}^{\mu} w_i = 1
+\end{equation}
+
+kde:
+\begin{description}
+\item $\mu \leq \lambda$ - velikost populace rodièù nové generace.
+\item $w_{i=1\dots\mu} \in \mathbb{R}_+$ - kladné váhové koeficienty pro rekombinaci støední hodnoty normálního rozdìlení
+\item $\textbf{x}_{i:\lambda}^{(g+1)}$ - $i$-tý nejlep¹í jedinec z $\left( \textbf{x}_1^{g+1}, \dots \textbf{x}_{\lambda}^{(g+1)} \right)$. Pro index $i:\lambda$ platí $f(\textbf{x}_{1:\lambda}^{(g+1)}) \geq f(\textbf{x}_{2:\lambda}^{(g+1)}) \geq \dots \geq f(\textbf{x}_{\lambda\lambda}^{(g+1)})$. $f$ je funkce urèená k optimalizaci.
+\end{description}
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/onestep_cma}
+\caption{Ukázka prùbìhu prvního kroku CMA-ES. Minimum funkce je v pravém horním rohu. \textit{Vzorkování}: na poèátku jsou navzorkovány body vícerozmìrným normálním rozlo¾ením s jednotkovou maticí. \textit{Selekce}: Je vybráno $\mu$ rodièù, kteøí budou vzorkovat dal¹í generaci. \textit{Nové rozlo¾ení}: kovarianèní matice se pøizpùsobí výsledkùm minulého vyhledávání~\ref{eq:update_covariance_matrix}, støední hodnota se rekombinuje z nejlep¹ích rodièù pomocí~\ref{eq:update_mean}.~\cite[str. 12]{hansen2011cma}}
+\label{fig:onestep_cma}
+\end{figure}
+
+\subsubsection{Rozptyl efektivní selekce}
+\textit{Rozptyl efektivní selekce} (angl. variance effective selection mass). Tato míra bude pozdìji vyu¾ívána pro výpoèet kovarianèní matice.
+
+\begin{equation}
+\mu_{eff} = \left( \sum_{i=1}^{\mu} w_i^2 \right) ^ {-1}
+\end{equation}
+Ze znalosti~\ref{eq:weights} vyplývá, ¾e $1 \leq \mu_{eff} \leq \mu$ a $\mu_{eff} = \mu$ pokud $w_i = \frac{1}{\mu}, i = 1, \dots, \mu$. Podle~\cite[str. 10]{hansen2011cma} naznaèuje $\mu_{eff} \approx \frac{\lambda}{4}$ dobré rozdìlení vah.
+
+\subsubsection{Evoluèní cesta kovarianèní matice}
+\textit{Evoluèní cesta} (angl. evolution path) je pou¾ívána pro zachování úspì¹nosti ji¾ provedených krokù. Pou¾itím kumulace úspì¹ných krokù nám dovoluje sní¾it populaci. Evoluèní cesta slou¾í pro dále zmiòovaný \textit{rank-one update}.
+
+\begin{equation}
+\textbf{p}_c^{(g+1)} = (1 - c_c) \textbf{p}_c^{(g)} + \sqrt{c_c (2 - c_c) \mu_{eff}} \frac{\textbf{m}^{(g+1)} - \textbf{m}^{(g)}}{\sigma^{(g)}} 
+\end{equation}
+
+kde:
+
+\begin{description}
+\item $\textbf{p}_c^{(g)} \in \mathbb{R}^N$ - evoluèní cesta generace g
+\item $c_c \leq 1$ - míra uèení (angl. learning rate) z pøedchozí evoluèní cesty, pokud $c_c = 1$ vytváøí se nová evoluèní cesta pouze z rozdílu støedních hodnot, pokud $c_c = 0$ je nová evoluèní cesta rovna cestì z pøedchozí generace
+\item $\sqrt{c_c (2 - c_c) \mu_{eff}}$ - normalizaèní konstanta
+\end{description}
+
+\subsubsection{Adaptace kovarianèní matice}
+Kovarianèní matice urèuje tvar následného vícerozmìrného normálního rozlo¾ení. Jak mù¾eme vidìt na Obrázku~\ref{fig:onestep_cma}, matice mìní tvar podle rodièù dal¹í populace. Pro úèely rychlej¹í konvergence k hledanému optimu jsou pøedstaveny dvì techniky: \textit{rank-$\mu$ update} a \textit{rank-one update}. Díky tìmto technikám je mo¾no sní¾it velikost populace a tím zvìt¹it poèet iterací a tím i urychlit adaptaci kovarianèní matice. 
+
+\begin{align} \label{eq:update_covariance_matrix}
+\textbf{C}^{(g+1)} = & (1 - c_1 - c_{\mu}) \textbf{C}^{(g)} \notag \\
+& + c_1 \underbrace{\textbf{p}_c^{(g+1)} \textbf{p}_c^{(g+1)^T}}_\text{rank-one update} \notag \\
+& + c_{\mu} \underbrace{\sum_{i=1}^{\mu} w_i \textbf{y}_{i:\lambda}^{(g+1)} \left( \textbf{y}_{i:\lambda}^{(g+1)} \right)^T}_\text{rank-$\mu$ update}
+\end{align}
+kde:
+
+\begin{description}
+\item $c_1 \approx 2 / N^2$ - míra uèení pro rank-one update
+\item $c_{\mu} \approx \min \left( \frac{\mu_{eff}}{ N^2}, 1 - c_1  \right)$ - míra uèení pro rank-$\mu$ update
+\item $\textbf{y}_{i:\lambda}^{(g+1)} =  \frac{ \textbf{x}_{i:\lambda}^{(g+1)} - \textbf{m}^{(g)} }{ \sigma^{(g)} }$
+\end{description}
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/stepsize_cma}
+\caption{Tøi evoluèní cesty, pro rùzné øe¹ené problémy. Tyto cesty mají stejnou velikost kroku. Z obrázku je vidìt, ¾e délka evoluèní cesty (suma krokù) je natolik rùzná, ¾e potøeba kontroly velikosti kroku je nutná.~\cite[str. 18]{hansen2011cma}}
+\label{fig:stepsize_cma}
+\end{figure}
+
+\subsubsection{Evoluèní cesta velikosti kroku}
+Tato evoluèní cesta slou¾í pro dynamickou zmìnu délky kroku. Evoluèní cesta je vlastnì kumulací posledních úspì¹ných krokù. Jak si mù¾eme v¹imnout na obrázku~\ref{fig:stepsize_cma} mù¾eme z hlediska velikosti kroku rozdìlit optimalizaci na 3 pøípady:
+\begin{itemize}
+\item Pokud je evoluèní cesta krátká, kroky se vzájemnì vyru¹í (Obrázek~\ref{fig:stepsize_cma} vlevo). Délka kroku by tedy mìla být sní¾ena
+\item Pokud jsou jednotlivé kroky na sebe kolmé, délka kroku by se mìnit nemìla (Obrázek~\ref{fig:stepsize_cma} uprostøed).
+\item Pokud je evoluèní cesta dlouhá, le¾í kroky stejným smìrem a délka kroku by mìla být prodlou¾ena (Obrázek~\ref{fig:stepsize_cma} vpravo).
+\end{itemize}
+
+Správná reakce na tyto situace je právì úkolem kontroly délky kroku. Evoluèní cesta pro délku kroku je definována takto:
+
+\begin{equation}
+\textbf{p}_{\sigma}^{(g+1)} = (1 - c_{\sigma}) \textbf{p}_{\sigma}^{(g)} + \sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}} \textbf{C}^{(g)^{-\frac{1}{2}}} \frac{\textbf{m}^{(g+1)} - \textbf{m}^{(g)}}{\sigma^{(g)}}
+\end{equation}
+kde:
+\begin{description}
+\item $\textbf{p}_{\sigma}^{(g)} \in \mathbb{R}^N$ - evoluèní cesta velikosti kroku generace $g$
+\item $c_{\sigma} < 1$ - míra uèení z pøedchozí evoluèní cesty
+\item $\sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}}$ - normalizaèní konstanta
+\item $\textbf{C}^{(g)^{-\frac{1}{2}}} = \textbf{B}^{(g)} \textbf{D}^{(g)^{-1}} \textbf{B}^{(g)^{T}}$ - zaji¹»uje, ¾e oèekávaná délka $p_{\sigma}^{(g+1)}$ je nezávislá na smìru kroku
+\end{description}
+
+\subsubsection{Kontrola velikosti kroku}
+Pøi výpoètu nového kroku je porovnána délka evoluèní cesty $ \|\textbf{p}_{\sigma}^{(g+1)} \|$ s její oèekávanou délkou $\mathsf{E} \| \mathcal{N}(\textbf{0},\textbf{I}) \|$
+\begin{equation}
+\mathsf{E} \| \mathcal{N}(\textbf{0},\textbf{I}) \| = \frac{\sqrt{2} \Gamma \left( \frac{N+1}{2} \right)}{\Gamma \left( \frac{N}{2}\right)} \approx \sqrt{N} + \mathcal{O}(\frac{1}{n})
+\end{equation}
+
+
+\begin{equation}
+\sigma^{(g + 1)} = \sigma^{(g)} \exp \left( \frac{c_{\sigma}}{d_{\sigma}} \left( \frac{ \| \textbf{p}_{\sigma}^{(g+1)} \| }{\mathsf{E} \| \mathcal{N}(\textbf{0}, \textbf{I}) \| } - 1 \right) \right)  
+\end{equation}
+
+kde:
+
+\begin{description}
+\item $d_{\sigma} \approx 1$ damping parametr, urèuje zmìnu $\sigma^{(g)}$
+\end{description}
+
 \chapter{Implementace}
 
 \chapter{Experimenty}
