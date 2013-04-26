@@ -491,6 +491,17 @@ class Game(object):
             payoffs.append(self.payoff(strategy_profile, player))
         for player in range(self.num_players):
             dsp = deep_strategy_profile[:]
+            empty_strategy = [0.0] * self.shape[player]
+            for strategy in range(self.shape[player]):
+                es = empty_strategy[:]
+                es[strategy] = 1.0
+                dsp[player] = es
+                current_payoff = self.payoff(dsp, player)
+                if (current_payoff - payoffs[player]) > 1e-4:
+                    logging.warning('Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player], 
+                            current_payoff, payoffs[player] - current_payoff))
+                    logging.warning("NE test failed")
+                    return False
             for i in range(num_tests):
                 dsp[player] = self.normalize(np.random.rand(self.shape[player]))
                 current_payoff = self.payoff(dsp, player)
