@@ -310,15 +310,26 @@ class Game(object):
         @return list of NE(list of probabilities)
         """
         if method == 'pne':
-            return self.getPNE()
+            result = self.getPNE()
+            if len(result) == 0:
+                return None
+            else:
+                return result
         elif self.num_players == 2 and method == 'support_enumeration':
-            return self.support_enumeration()
+            result = self.support_enumeration()
+            if len(result) == 0:
+                return None
+            else:
+                return result
         elif method == 'cmaes':
             result = cmaes.fmin(self.v_function, self.sum_shape)
         elif method in self.METHODS:
-            result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
+            result = scipy.optimize.minimize(self.v_function,
+                                             np.random.rand(self.sum_shape),
+                                             method=method, tol=1e-10,
+                                             options={"maxiter":1e3 * self.sum_shape ** 2})
         logging.info(result)
-        self.degenerated = self.isDegenerated()
+        #self.degenerated = self.isDegenerated()
         if result.success:
             r = []
             r.append(result.x)
@@ -431,7 +442,7 @@ class Game(object):
         result = ""
         if self.degenerated:
             logging.warning("Game is degenerated")
-        for ne in nes:
+        for index, ne in enumerate(nes):
             print_ne = list(ne)
             # assure that printed result are in same shape as self.init_shape
             if self.deleted_strategies is not None:
@@ -440,8 +451,10 @@ class Game(object):
                     for deleted_strategy in self.deleted_strategies[player]:
                         print_ne.insert(acc + deleted_strategy, 0.0)
                     acc += self.init_shape[player]
-            probabilities = ["%.3f" % abs(p) for p in print_ne]
-            result += "NE " + ", ".join(probabilities) + "\n"
+            probabilities = map(str, print_ne)
+            result += "NE " + ", ".join(probabilities)
+            if index != len(nes) - 1:
+                result += '\n'
             if payoff:
                 s = []
                 for player in xrange(self.num_players):
@@ -452,7 +465,7 @@ class Game(object):
                 self.checkNE(ne)
             return result
 
-    def checkNE(self, strategy_profile, num_tests=1000):
+    def checkNE(self, strategy_profile, num_tests=1000, accuracy=1e-4):
         """
         Function generates random probability distribution for players and
         check if strategy_profile is really NE. If the payoff will be bigger
@@ -478,7 +491,7 @@ class Game(object):
                 es[strategy] = 1.0
                 dsp[player] = es
                 current_payoff = self.payoff(dsp, player)
-                if (current_payoff - payoffs[player]) > 1e-4:
+                if (current_payoff - payoffs[player]) > accuracy:
                     logging.warning('Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player],
                                     current_payoff, payoffs[player] - current_payoff))
                     logging.warning("NE test failed")
@@ -486,7 +499,7 @@ class Game(object):
             for i in xrange(num_tests):
                 dsp[player] = self.normalize(np.random.rand(self.shape[player]))
                 current_payoff = self.payoff(dsp, player)
-                if (current_payoff - payoffs[player]) > 1e-4:
+                if (current_payoff - payoffs[player]) > accuracy:
                     logging.warning('Player {0} has better payoff with {1}, previous payoff {2}, current payoff {3}, difference {4}. '.format(player, dsp[player], payoffs[player],
                                     current_payoff, payoffs[player] - current_payoff))
                     logging.warning("NE test failed")
@@ -503,7 +516,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--elimination', action='store_true', default=False)
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
     parser.add_argument('-c', '--checkNE', action='store_true', default=False)
-    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO",
+    parser.add_argument('--log', default="CRITICAL", choices=("DEBUG", "INFO",
                                                              "WARNING", "ERROR",
                                                              "CRITICAL"))
     parser.add_argument('--log-file', default=None)
