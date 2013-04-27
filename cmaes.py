@@ -88,9 +88,8 @@ class CMAES(object):
         return self.arx
 
     def update(self, arfitness):
-        self.arfitness = arfitness
         self.counteval += self.lamda
-        self.arindex = np.argsort(self.arfitness)
+        self.arfitness = arfitness
         # sort by fitness and compute weighted mean into xmean
         self.arindex = np.argsort(self.arfitness)
         self.arfitness = self.arfitness[self.arindex]
@@ -141,7 +140,7 @@ class CMAES(object):
         return self.result
     
     def restart(self, lamda_factor):
-        self.init_variables(0.3, np.random.rand(self.N), lamda_factor=lamda_factor)#self.store_parameters['sigma'], self.store_parameters['xmean'])
+        self.init_variables(self.store_parameters['sigma'], np.random.rand(self.N), lamda_factor=lamda_factor)
 
     def check_stop(self):
         i = self.generation % self.N
