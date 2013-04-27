@@ -156,19 +156,14 @@ class Game(object):
         """
         row_index = np.zeros(self.shape[0], dtype=bool)
         col_index = np.zeros(self.shape[1], dtype=bool)
-        order = ['F', 'C']
         row_index[list(combination[0])] = True
         col_index[list(combination[1])] = True
-        view = self.array[(player + 1) % 2][row_index][:, col_index]
-        numbers = []
+        numbers = self.array[(player + 1) % 2][row_index][:, col_index]
         last_row = np.ones((1, num_supports + 1))
         last_row[0][-1] = 0
         last_column = np.ones((num_supports, 1)) * -1
-        for index, payoff in enumerate(np.nditer(view, order=order[player],
-                                                 flags=['refs_ok'])):
-            numbers.append(payoff.flat[0])
-        numbers = np.array(numbers, dtype=float).reshape(num_supports,
-                                                         num_supports)
+        if player == 0:
+            numbers = numbers.T
         numbers = np.hstack((numbers, last_column))
         numbers = np.vstack((numbers, last_row))
         return numbers
@@ -182,6 +177,7 @@ class Game(object):
         result = self.getPNE()
         # for every numbers of supports
         for num_supports in xrange(2, min(self.shape) + 1):
+            logging.debug("Support enumearation for num_supports: {0}".format(num_supports))
             supports = []
             equal = [0] * num_supports
             equal.append(1)
