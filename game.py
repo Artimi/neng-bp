@@ -5,14 +5,11 @@ from __future__ import division
 import numpy as np
 import shlex
 import itertools
-import ipdb
 from operator import mul
 import scipy.optimize
 import sys
-#import games_result
 import logging
 import cmaes
-import cma
 
 
 class Game(object):
@@ -49,6 +46,29 @@ class Game(object):
             s[player] = br
             # made whole strategy profile, not just one strategy
             result.add(tuple(s))
+        return result
+
+    def getPNE(self):
+        """
+        Function computes PNE
+
+        @return set of strategy profiles that was computed as pure nash
+        equlibria
+        """
+        # view = [slice(None) for i in range(self.num_players)]
+        self.brs = [set() for i in xrange(self.num_players)]
+        for player in xrange(self.num_players):
+            p_view = self.shape[:]
+            p_view[player] = 1
+            # get all possible opponent strategy profiles to 'player'
+            for strategy in np.ndindex(*p_view):
+                # add to list of best responses
+                self.brs[player].update(self.bestResponse(player, strategy))
+        # check degeneration of a game
+        self.degenerated = self.isDegenerated()
+        # PNE is where all player have Best Response
+        ne_coordinates = set.intersection(*self.brs)
+        result = map(self.coordinateToStrategyProfile, ne_coordinates)
         return result
 
     def getDominatedStrategies(self):
@@ -99,29 +119,6 @@ class Game(object):
             dominated_strategies = self.getDominatedStrategies()
         for player in xrange(self.num_players):
             self.deleted_strategies[player].sort()
-
-    def getPNE(self):
-        """
-        Function computes PNE
-
-        @return set of strategy profiles that was computed as pure nash
-        equlibria
-        """
-        # view = [slice(None) for i in range(self.num_players)]
-        self.brs = [set() for i in xrange(self.num_players)]
-        for player in xrange(self.num_players):
-            p_view = self.shape[:]
-            p_view[player] = 1
-            # get all possible opponent strategy profiles to 'player'
-            for strategy in np.ndindex(*p_view):
-                # add to list of best responses
-                self.brs[player].update(self.bestResponse(player, strategy))
-        # check degeneration of a game
-        self.degenerated = self.isDegenerated()
-        # PNE is where all player have Best Response
-        ne_coordinates = set.intersection(*self.brs)
-        result = map(self.coordinateToStrategyProfile, ne_coordinates)
-        return result
 
     def isDegenerated(self):
         """
@@ -277,9 +274,7 @@ class Game(object):
             deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
         else:
             raise Exception("Length of strategy_profile: '{0}', does not match.")
-        product = np.tensordot(deep_strategy_profile[0], deep_strategy_profile[1], 0)
-        for i in xrange(2,self.num_players):
-            product = np.tensordot(product, deep_strategy_profile[i], 0)
+        product = reduce(lambda x, y: np.tensordot(x, y, 0), deep_strategy_profile)
         result = np.sum(product * self.array[player])
         return result
 
@@ -311,21 +306,6 @@ class Game(object):
         """
         return np.abs(strategy) / np.sum(np.abs(strategy))
 
-    def normalize_strategy_profile(self, strategy_profile):
-        """
-        Normalize whole strategy profile by strategy of each player
-
-        @parameter strategy_profile to be normalized
-        @return normalized strategy_profile
-        """
-        result = []
-        acc = 0
-        for i in self.shape:
-            strategy = np.array(strategy_profile[acc:acc+i])
-            result.extend(self.normalize(strategy))
-            acc += i
-        return result
-
     def findEquilibria(self, method='cmaes'):
         """
         Find all equilibria, using method
@@ -339,8 +319,6 @@ class Game(object):
             return self.support_enumeration()
         elif method == 'cmaes':
             result = cmaes.fmin(self.v_function, self.sum_shape)
-        elif method == 'cma':
-            result = cma.fmin(self.v_function, np.random.rand(self.sum_shape))
         elif method in self.METHODS:
             result = scipy.optimize.minimize(self.v_function, np.zeros(self.sum_shape), method=method)
         logging.info(result)
@@ -441,10 +419,10 @@ class Game(object):
         @return list of numbers in long format
         """
         result = [0.0] * self.sum_shape
-        accumulator = 0
+        offset = 0
         for index, i in enumerate(self.shape):
-            result[t[index] + accumulator] = 1.0
-            accumulator += i
+            result[t[index] + offset] = 1.0
+            offset += i
         return result
 
     def printNE(self, nes, payoff=False, checkNE=False):
@@ -547,15 +525,3 @@ if __name__ == '__main__':
         print g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)
     else:
         sys.exit("Nash equilibrium was not found.")
-    #filename = os.path.basename(args.file)
-    #for r in result:
-        #if filename in games_result.r:
-            #found = False
-            #for gr in games_result.r[filename]:
-                #if np.allclose(r, gr, atol=1e-2, rtol=0):
-                    #found = True
-                    #break
-            #if found  == False:
-                #print "NE {0} was not found in results.".format(r)
-    #g.checkNE([0.500,0.500,0.333,0.667])
-# zjistit, kde je problem se zacyklenim a popsat ho, zajistit aby se k nemu doslo vzdycky

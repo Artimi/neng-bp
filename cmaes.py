@@ -6,7 +6,6 @@ import numpy as np
 import scipy.optimize
 import collections
 import logging
-import ipdb
 
 
 class CMAES(object):
