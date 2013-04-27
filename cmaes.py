@@ -147,14 +147,14 @@ class CMAES(object):
         self.stop_conditions = (self.arfitness[0] <= self.stopfitness,
                                 self.counteval > self.stopeval,
                                 sum(self.xmean == self.xmean + 0.1 * self.sigma * self.D[i] * self.B[:, i]) == self.N,
-                                np.any(self.xmean == self.xmean + 0.2 * self.sigma * np.sqrt(self.C)),
+                                np.any(self.xmean == self.xmean + 0.2 * self.sigma * np.sqrt(np.diag(self.C))),
                                 #len(self.history['long_median']) > self.long_history_len_down and \
                                 #np.median(list(itertools.islice(self.history['long_median'], int(0.7*len(self.history['long_median'])), None))) <= \
                                 #np.median(list(itertools.islice(self.history['long_median'],int(0.3*len(self.history['long_median']))))),
                                 np.linalg.cond(self.C) > self.condition_cov_max,
                                 self.sigma * np.max(self.D) >= self.tolxup,
                                 max(self.history['short_best']) - min(self.history['short_best']) <= self.tolfun and self.arfitness[-1] - self.arfitness[0] <= self.tolfun,
-                                np.all(self.sigma * self.pc < self.tolx) and np.all(self.sigma * np.sqrt(self.C) < self.tolx)
+                                np.all(self.sigma * self.pc < self.tolx) and np.all(self.sigma * np.sqrt(np.diag(self.C)) < self.tolx)
                                )
         if np.any(self.stop_conditions):
             self.status = self.stop_conditions.index(True)
