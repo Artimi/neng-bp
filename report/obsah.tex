@@ -302,7 +302,7 @@ Funkce $v: \Delta \rightarrow \mathbb{R}$ definovaná v~\ref{def:lyapunov_functio
 
 Dùkaz této vìty mù¾eme najít na~\cite[str. 3]{mckelvey1998laipunov}.
 
-Pro úèely vlastní minimalizace funkce je vhodné pøidat k funkci $v$ penalizaci  pro body, které nele¾í v $\Delta$ podle~\ref{eq:set_mixed_strategies}.
+Pro úèely vlastní minimalizace funkce je vhodné pøidat k funkci $v$ penalizaci  pro body, které nele¾í v $\Delta$ podle~\ref{eq:set_mixed_strategies}. Tento pøístup je ostatnì popsán i v~\cite[str. 29]{hansen2011cma}.
 
 \begin{equation}
 w(\sigma) = v(\sigma) + \sum_{i \in Q}\sum_{j \in m_i} \left\{ \min[\sigma_{ij}, 0] + \max[\sigma_{ij},1] -1 \right\}^2 + \sum_{i \in Q} \left( 1 - \sum_{j \in m_i} p_{ij} \right)^2 
@@ -318,7 +318,7 @@ Pøièem¾ normalizace probíhá pouze pro výpoèet hodnoty funkce, pùvodní zkoumaný s
 
 \subsection{Covariance Matrix Adaptation - Evolution Strategy}
 
-CMA-ES je stochastická metoda pro optimalizaci nelineárních, nekonvexních funkcí s reálnými parametry (se spojitou doménou). Pracuje na principu adaptace kovarianèní matice pro pou¾ití u \textit{vícerozmìrného normálního rozdìlení} (angl. mutlivariate normal distribution), kterým se vzorkují nové hledané body. Tato metoda zde bude pou¾ita pro \textit{jednokriteteriální optimalizaci} (angl. single-objective optimization) Lyapunovy funkce~\ref{def:lyapunov_function}. Pracuje pouze s objektivní funkcí, jedná se tedy o takzvanou \textit{black-box} optimalizaci. V následujících sekcích budu vycházet ze~\cite{hansen2011cma, hansen2006cma}. Metoda CMA-ES zde bude pøedstavena jen v takové míøe jaká je dùle¾itá pro tuto práci, tzn. pøehledovì, pro hlub¹í pochopení souvislostí je tøeba proèíst dané materiály.
+CMA-ES je stochastická metoda pro optimalizaci nelineárních, nekonvexních funkcí s reálnými parametry (se spojitou doménou). Pracuje na principu adaptace kovarianèní matice pro pou¾ití u \textit{vícerozmìrného normálního rozdìlení} (angl. mutlivariate normal distribution), kterým se vzorkují nové hledané body. Tato metoda zde bude pou¾ita pro \textit{jednokriteteriální optimalizaci} (angl. single-objective optimization) Lyapunovy funkce~\ref{def:lyapunov_function}. Pracuje pouze s objektivní funkcí, jedná se tedy o takzvanou \textit{black-box} optimalizaci. Metoda CMA-ES zde bude pøedstavena jen v takové míøe jaká je dùle¾itá pro tuto práci, tzn. pøehledovì, pro hlub¹í pochopení souvislostí je tøeba proèíst dané materiály. V následujících sekcích budu vycházet ze~\cite{hansen2011cma}.\footnote{Nìkteré vzorce odvozené v prùbìhu výkladu metody v~\cite{hansen2011cma} nejsou shodné se vzorci uvedenými v závìreèném shrnutí, v této práci byly tyto vzorce opraveny podle závìreèného shrnutí, aby byla celá metoda konzistentní.}
 
 \begin{figure}[H]
 \includegraphics[width=\textwidth]{fig/ellipsoids_cma}
@@ -384,7 +384,7 @@ Ze znalosti~\ref{eq:weights} vyplývá, ¾e $1 \leq \mu_{eff} \leq \mu$ a $\mu_{eff
 \textit{Evoluèní cesta} (angl. evolution path) je pou¾ívána pro zachování úspì¹nosti ji¾ provedených krokù. Pou¾itím kumulace úspì¹ných krokù nám dovoluje sní¾it populaci. Evoluèní cesta slou¾í pro dále zmiòovaný \textit{rank-one update}.
 
 \begin{equation}
-\textbf{p}_c^{(g+1)} = (1 - c_c) \textbf{p}_c^{(g)} + \sqrt{c_c (2 - c_c) \mu_{eff}} \frac{\textbf{m}^{(g+1)} - \textbf{m}^{(g)}}{\sigma^{(g)}} 
+\textbf{p}_c^{(g+1)} = (1 - c_c) \textbf{p}_c^{(g)} + h_{\sigma}\sqrt{c_c (2 - c_c) \mu_{eff}} \langle \textbf{y} \rangle_w
 \end{equation}
 
 kde:
@@ -393,6 +393,13 @@ kde:
 \item $\textbf{p}_c^{(g)} \in \mathbb{R}^N$ - evoluèní cesta generace g
 \item $c_c \leq 1$ - míra uèení (angl. learning rate) z pøedchozí evoluèní cesty, pokud $c_c = 1$ vytváøí se nová evoluèní cesta pouze z rozdílu støedních hodnot, pokud $c_c = 0$ je nová evoluèní cesta rovna cestì z pøedchozí generace
 \item $\sqrt{c_c (2 - c_c) \mu_{eff}}$ - normalizaèní konstanta
+\item $
+h_{\sigma} = 
+\begin{cases}
+1 & pokud \frac{\| \textbf{p}_{\sigma} \|}{\sqrt{1-(1-c_{\sigma})^{2(g+1)}}} < (1.4 + \frac{2}{N + 1}) \mathsf{E} \| \mathcal{N}(\textbf{0}, \textbf{I}) \|\\
+0 & jinak \\
+\end{cases} 
+$ jednotkový skok (angl. Heaviside step function) zpomalující rùst $\textbf{p}_c$ pokud je $\textbf{p}_{\sigma}$ pøíli¹ velké.
 \end{description}
 
 \subsubsection{Adaptace kovarianèní matice}
@@ -400,15 +407,17 @@ Kovarianèní matice urèuje tvar následného vícerozmìrného normálního rozlo¾ení. J
 
 \begin{align} \label{eq:update_covariance_matrix}
 \textbf{C}^{(g+1)} = & (1 - c_1 - c_{\mu}) \textbf{C}^{(g)} \notag \\
-& + c_1 \underbrace{\textbf{p}_c^{(g+1)} \textbf{p}_c^{(g+1)^T}}_\text{rank-one update} \notag \\
+& + c_1 \underbrace{\left(\textbf{p}_c^{(g+1)} \textbf{p}_c^{(g+1)^T} + \delta(h_{\sigma}) \textbf{C} \right)}_\text{rank-one update} \notag \\
 & + c_{\mu} \underbrace{\sum_{i=1}^{\mu} w_i \textbf{y}_{i:\lambda}^{(g+1)} \left( \textbf{y}_{i:\lambda}^{(g+1)} \right)^T}_\text{rank-$\mu$ update}
 \end{align}
+
 kde:
 
 \begin{description}
 \item $c_1 \approx 2 / N^2$ - míra uèení pro rank-one update
 \item $c_{\mu} \approx \min \left( \frac{\mu_{eff}}{ N^2}, 1 - c_1  \right)$ - míra uèení pro rank-$\mu$ update
 \item $\textbf{y}_{i:\lambda}^{(g+1)} =  \frac{ \textbf{x}_{i:\lambda}^{(g+1)} - \textbf{m}^{(g)} }{ \sigma^{(g)} }$
+\item  $\delta(h_{\sigma}) = (1-h_{\sigma})c_c (2 - c_c)$, $\delta(h_{\sigma}) \leq 1$
 \end{description}
 
 \begin{figure}[H]
@@ -421,29 +430,32 @@ kde:
 Tato evoluèní cesta slou¾í pro dynamickou zmìnu délky kroku. Evoluèní cesta je vlastnì kumulací posledních úspì¹ných krokù. Jak si mù¾eme v¹imnout na obrázku~\ref{fig:stepsize_cma} mù¾eme z hlediska velikosti kroku rozdìlit optimalizaci na 3 pøípady:
 \begin{itemize}
 \item Pokud je evoluèní cesta krátká, kroky se vzájemnì vyru¹í (Obrázek~\ref{fig:stepsize_cma} vlevo). Délka kroku by tedy mìla být sní¾ena
-\item Pokud jsou jednotlivé kroky na sebe kolmé, délka kroku by se mìnit nemìla (Obrázek~\ref{fig:stepsize_cma} uprostøed).
+\item Pokud jsou jednotlivé kroky na sebe pøibli¾nì kolmé, délka kroku by se mìnit nemìla (Obrázek~\ref{fig:stepsize_cma} uprostøed).
 \item Pokud je evoluèní cesta dlouhá, le¾í kroky stejným smìrem a délka kroku by mìla být prodlou¾ena (Obrázek~\ref{fig:stepsize_cma} vpravo).
 \end{itemize}
 
 Správná reakce na tyto situace je právì úkolem kontroly délky kroku. Evoluèní cesta pro délku kroku je definována takto:
 
 \begin{equation}
-\textbf{p}_{\sigma}^{(g+1)} = (1 - c_{\sigma}) \textbf{p}_{\sigma}^{(g)} + \sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}} \textbf{C}^{(g)^{-\frac{1}{2}}} \frac{\textbf{m}^{(g+1)} - \textbf{m}^{(g)}}{\sigma^{(g)}}
+\textbf{p}_{\sigma}^{(g+1)} = (1 - c_{\sigma}) \textbf{p}_{\sigma}^{(g)} + \sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}} \textbf{C}^{(g)^{-\frac{1}{2}}} \langle \textbf{y} \rangle_w
 \end{equation}
+
 kde:
 \begin{description}
 \item $\textbf{p}_{\sigma}^{(g)} \in \mathbb{R}^N$ - evoluèní cesta velikosti kroku generace $g$
 \item $c_{\sigma} < 1$ - míra uèení z pøedchozí evoluèní cesty
 \item $\sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}}$ - normalizaèní konstanta
 \item $\textbf{C}^{(g)^{-\frac{1}{2}}} = \textbf{B}^{(g)} \textbf{D}^{(g)^{-1}} \textbf{B}^{(g)^{T}}$ - zaji¹»uje, ¾e oèekávaná délka $p_{\sigma}^{(g+1)}$ je nezávislá na smìru kroku
+\item $\langle \textbf{y} \rangle_w  = \sum_{i=1}^{\mu} w_i \textbf{y}_{i:\lambda}$ krok støední hodnoty rozlo¾ení, ignorující délku kroku $\sigma$
 \end{description}
 
-\subsubsection{Kontrola velikosti kroku}
+\subsubsection{Kontrola délky kroku}
 Pøi výpoètu nového kroku je porovnána délka evoluèní cesty $ \|\textbf{p}_{\sigma}^{(g+1)} \|$ s její oèekávanou délkou $\mathsf{E} \| \mathcal{N}(\textbf{0},\textbf{I}) \|$
 \begin{equation}
-\mathsf{E} \| \mathcal{N}(\textbf{0},\textbf{I}) \| = \frac{\sqrt{2} \Gamma \left( \frac{N+1}{2} \right)}{\Gamma \left( \frac{N}{2}\right)} \approx \sqrt{N} + \mathcal{O}(\frac{1}{n})
+\mathsf{E} \| \mathcal{N}(\textbf{0},\textbf{I}) \| = \frac{\sqrt{2} \Gamma \left( \frac{N+1}{2} \right)}{\Gamma \left( \frac{N}{2}\right)} \approx \sqrt{N} + (1 - \frac{1}{4N} + \frac{1}{21N^2})
 \end{equation}
 
+Pokud je délka evoluèní cesty del¹í ne¾ oèekávaná délka, je krok prodlou¾en. Pokud byl odhad správný krok se nemìní. Pokud je délka evoluèní cesty krat¹í ne¾ oèekávaná délka, je krok zkrácen.
 
 \begin{equation}
 \sigma^{(g + 1)} = \sigma^{(g)} \exp \left( \frac{c_{\sigma}}{d_{\sigma}} \left( \frac{ \| \textbf{p}_{\sigma}^{(g+1)} \| }{\mathsf{E} \| \mathcal{N}(\textbf{0}, \textbf{I}) \| } - 1 \right) \right)  
@@ -455,9 +467,118 @@ kde:
 \item $d_{\sigma} \approx 1$ damping parametr, urèuje zmìnu $\sigma^{(g)}$
 \end{description}
 
+\subsubsection{Kritéria ukonèení} \label{sec:termination_criteria}
+Algoritmus má nìkolik kritérií, pøi kterých se ukonèí. Pokud nebylo nebylo dosa¾eno hledaného minima, je mo¾nost algoritmus restartovat jak je popsáno v~\ref{sec:restart_cma}. V¹echny podmínky jsou popsány v~\cite[str. 28]{hansen2011cma}. Kromì první znaèí v¹echny ukonèovací podmínky neúspìch:
+\begin{itemize}
+\item Nalezení minima. Funkèní hodnota nejlep¹ího bodu men¹í ne¾ $10^{-10}$. Algoritmus na¹el minimum s po¾adovanou pøesností.
+\item Neefektivní osy. Pøidání $0.1$ smìrodatné odchylky k jakékoliv hlavní ose $\textbf{C}$ nezmìní $\textbf{m}$. Formálnì $\textbf{m} = \textbf{m} + 0.1 \sigma d_{ii} \textbf{b}_i, i = (g \mod n) + 1$
+\item Neefektivní souøadnice. Pøidání $0.2$ smìrodatné odchylky k jakékoli souøadnici nezmìní $\textbf{m}$. $\forall i \in Q: m_i = m_i + 0.2 \sigma c_{ii}$
+\item Shodné funkèní hodnoty. Pokud je rozsah funkèních hodnot nejlep¹ích jedincù posledních
+$10 + \left\lceil \frac{30N}{\lambda} \right\rceil$ generací roven $0$.
+\item Stagnace. Zkoumáme medián funkèní hodnoty $20\%$ posledních $g$ generací $120 + 30\frac{N}{\lambda} \leq g \leq 20000$. Skonèíme pokud není medián posledních $30\%$ záznamù lep¹í ne¾ medián prvních $30\%$ záznamù. Toto ukonèovací kritérium nebylo v práci pou¾ito, podle autorovi zku¹enosti ukonèovalo algoritmus v momentì, kdy u¾ chybìlo jen pár iterací k dosa¾ení po¾adované pøesnosti.
+\item Podmínìnost matice. Pokud podmínìnost matice (angl. condition number) pøesáhne $10^{14}$
+\item TolXUp. Pokud $\sigma \times \max(diag(\textbf{D}))$ pøesáhne $10^4$. Tato podmínka naznaèuje pøíli¹ malé poèáteèní $\sigma$ nebo divergentní chování metody.
+\item TolFun. Pokud je rozsah funkèních hodnot nejlep¹ích jedincù posledních $10 + \left\lceil \frac{30N}{\lambda} \right\rceil$ men¹í ne¾ $10^{-12}$ a zároveò pokud jsou v¹echny funkèní hodnoty poslední generace pod touto hodnotou.
+\item TolX. Pokud je $\sigma \textbf{p}_c < TolX$ a zároveò $\sigma \sqrt{\textbf{C}} < TolX$. $TolX = \sigma^{(0)} 10^{-12}$
+\item Flat Fitness. Pokud je funkèní hodnota nìkolika jedincù poslední generace shodná.
+\end{itemize}
+
+\subsubsection{Restart algoritmu se zvìt¹enou populací} \label{sec:restart_cma}
+Bìhen testování se ukázalo, ¾e algoritmus nìkdy uvázne v lokálním minimu. Problém lokálních minim Lyapunovy funkce je ostatnì popsán v~\cite[str. 6]{mckelvey1998laipunov}. Metoda samotná by mìla do urèité míry tyto lokální minima pøekonávat, hlavnì ve vìt¹ích hrách se to v¹ak nemusí podaøit. Tento problém byl øe¹en na základì èlánku~\cite{auger2005restart}. Vychází se z pøedpokladu, ¾e vìt¹í populace povede ke globálnímu výsledku s vìt¹í pravdìpodobností. Pokud se stane, ¾e algoritmus uvázne v lokálním minimu, je zastaven ukonèovacími kritérii~\ref{sec:termination_criteria} a je proveden restart celé metody, tentokrát v¹ak s populací navý¹enou dvojnásobnì oproti minulému pokusu.
+
+\subsubsection{Pøehled pou¾itých parametrù}
+Metoda CMA-ES pou¾ívá celou øadu parametrù, jejich¾ hodnoty bylo experimentálnì docíleno jejím autorem. Tyto hodnoty mù¾eme pøevzít z~\cite[str. 27]{hansen2011cma}.
+Selekce a rekombinace:
+\begin{equation}
+\lambda = 4 + \lfloor 3 + \ln N \rfloor, \quad \mu = \left\lfloor \frac{\lambda}{2} \right\rfloor
+\end{equation}
+\begin{equation}
+w_i = \frac{w'_i}{\sum_{j=1}^{\mu}}, \quad w'_i = \ln(\mu' + 0.5) - \ln i \quad \text{for}\; i = 1,\dots, \mu
+\end{equation}
+Kontrola délky kroku:
+\begin{equation}
+c_{\sigma} = \frac{\mu_{eff} + 2}{N + \mu_{eff} + 5}, \quad d_{\sigma} = 1 + 2 max \left( 0, \sqrt{\frac{\mu_{eff} - 1}{N + 1}} - 1  \right) + c_{\sigma}
+\end{equation}
+Adaptace kovarianèní matice:
+\begin{equation}
+c_c = \frac{4+\frac{\mu_{eff}}{N}}{N + 4 + \frac{2 
+\mu_{eff}}{N}}
+\end{equation}
+\begin{equation}
+c_1 = \frac{2}{(n + 1.3)^2 + \mu_{eff}}
+\end{equation}
+\begin{equation}
+c_{\mu} = \min \left( 1 -  c_1, 2 \frac{\mu_{eff} - 2 + \frac{1}{\mu_{eff}}}{(N+2)^2 + \mu_{eff}} \right )
+\end{equation}
+\pagebreak
+\subsubsection{Celkový algoritmus}
+Zde je pøedstaven celý algoritmus metody CMAES. Je v nìm i zahrnuto restartování se zvìt¹enou populací. Význam promìnných a hodnoty parametrù byly objasnìny v pøedcházejících kapitolách.
+\begin{algorithm}
+\caption{Covariance Matrix Adaptation - Evolution Strategies} \label{alg:cmaes}
+\begin{algorithmic}
+\While{nenalezeno minimum}
+\State Nastav parametry $\lambda, \mu, w_{i=1,\dots,\mu}, c_{\sigma}, d_{\sigma}, c_c, c_1, c_{\mu}$
+\State Inicializuj $\textbf{p}_{\sigma} = \textbf{p}_c = \textbf{0}, \textbf{C} = \textbf{I}, g = 0$, vyber $\textbf{m} \in \mathbb{R}^N$ a $\sigma \in \mathbb{R}_+$ podle øe¹ené úlohy
+\While{není splnìna ukonèovací podmínka}
+\State Vzorkuj potomky
+\begin{align}
+\textbf{z}_k & \sim  \mathcal{N}(\textbf{0}, \textbf{I}) \\
+\textbf{y}_k & =  \textbf{BDz}_{k} \sim \mathcal{N}(\textbf{0}, \textbf{C}) \\
+\textbf{x}_k & = \textbf{m} + \sigma \textbf{y}_k \sim \mathcal{N}(\textbf{m}, \sigma^2 \textbf{C})
+\end{align}
+
+\State Selekce a rekombinace
+\begin{equation}
+\textbf{m} \gets \sum_{i=1}^{\mu} w_i \textbf{x}_{i:\lambda}
+\end{equation}
+
+\State Kontrola délky kroku
+\begin{align}
+\textbf{p}_{\sigma} & \gets (1 - c_{\sigma}) \textbf{p}_{\sigma} + \sqrt{c_{\sigma}(2-c_{\sigma}) \mu_{eff}} \textbf{C}^{{-\frac{1}{2}}} \langle \textbf{y} \rangle_w  \\
+\sigma & \gets \sigma \times \exp \left( \frac{c_{\sigma}}{d_{\sigma}} \left( \frac{ \| \textbf{p}_{\sigma} \| }{\mathsf{E} \| \mathcal{N}(\textbf{0}, \textbf{I}) \| } - 1 \right) \right)  
+\end{align}
+
+\State Adaptace kovarianèní matice
+\begin{align}
+\textbf{p}_c & \gets (1 - c_c) \textbf{p}_c + h_{\sigma}\sqrt{c_c (2 - c_c) \mu_{eff}}  \langle \textbf{y} \rangle_w \\
+\textbf{C} & \gets  (1 - c_1 - c_{\mu}) \textbf{C} 
++ c_1 \left( \textbf{p}_c \textbf{p}_c^T + \delta(h_{\sigma}) \textbf{C} \right)
++ c_{\mu} \sum_{i=1}^{\mu} w_i \textbf{y}_{i:\lambda} \textbf{y}_{i:\lambda}^T
+\end{align}
+
+\EndWhile
+\If{nenalezeno minimum}
+\State $\lambda \gets 2 \lambda$
+\EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
 \chapter{Implementace}
+V této kapitole budou popsány implementaèní detaily nástroje pro výpoèet Nashova ekvilibria. Výstupem této práce je aplikace pracující v pøíkazovém øádku, která na vstupu oèekává hru ve formátu \texttt{.nfg}, který je standardem pro program Gambit~\cite{mckelvey2006gambit} øe¹ící stejnou problematiku jako tato práce. Podle zvolených dal¹ích pøepínaèù popsaných v u¾ivatelském manuálu, podá na výstup zprávu o výsledku výpoètu.
+
+Jako implementaèní jazyk byl zvolen Python ve verzi $2.7$. Pro volbu tohoto jazyka byly následující dùvody:
+\begin{itemize}
+\item Díky skvìlé knihovnì numpy~[Z] a scipy~[Z] jsou v Pythonu v¹echny potøebné matematické operace dostupné a efektivní. Nabízí také rozsáhlou knihovnu pro tvorbu grafù Matplotlib~[Z].
+\item Jazyk Python je pøehledný, kód tak mù¾e lépe slou¾it jako uèební pomùcka.
+\item Nabízí nástroje pro snadnou správu projektu jako je debugger pdb, interaktivní odchytávání výjimek pomocí programu IPython.
+\end{itemize}
+
+\section{Implementaèní detaily}
+Program se skládá ze dvou tøíd, které zaji¹»ují ve¹keré funkce potøebné pro projekt.
+
+Tøída \texttt{Game} obaluje celou hru, zpracovává vstup, vypracovává výstup, provádí základní analýzu hry (napø. zda je hra degenerativní), provádí iterativní eliminaci dominovaných strategií~\ref{alg:iterative_elimination}, poèítá ryzí Nashovo ekvilibrium hrubou silou~\ref{alg:pne_brute_force}, smí¹ené Nashovo ekvilibrium vyèíslením domén~\ref{alg:support_enumeration}, provádí zda nalezený strategický profil je opravdu Nashovo ekvilibrium (kapitola~\ref{sec:test_ne}).
+
+Tøída \texttt{CMAES} implementuje celý algoritmus~\ref{alg:cmaes}. Tato tøíd pracuje po jednotlivých krocích. Na poèátku jsou inicializovány promìnné tøídy v konstruktoru, pomocí funkce \texttt{init\_variables()} jsou inicializovány promìnné závislé na parametru $\lambda$, tedy velikost populace, to nám dává mo¾nost provádìt restart celé metody. Dále u¾ algoritmus probíhá v iteracích, kdy je nejdøíve volána metoda \texttt{new\_generation()} pro navzorkování nových jedincù. Ti jsou posléze ohodnoceny objektivní funkcí a je volána metoda \texttt{update()} pro aktualizaci v¹ech promìnných na základì nové generace. V ka¾dé iteraci se pomocí \texttt{check\_stop()} kontroluje zda byla splnìna nìkterá z ukonèovacích podmínek. Pokud byl algoritmus ukonèen úspì¹nì, je vrácen výsledek a algoritmus konèí. Pokud v¹ak skonèil chybou je metoda restartována se zdvojnásobenou populací~\ref{sec:restart_cma} a celý algoritmus zaèíná znovu.
+
+\subsection{Test Nashova ekvilibria} \label{sec:test_ne}
+Pro provedení kontroly, zda nalezený strategický profil opravdu je Nashovo ekvilibrium, byl implementován test zkoumající, jestli jeden z hráèù bude mít tendence zmìnit svou strategii a tak si zvý¹it u¾itek ze hry. Tento test probíhá následujícím zpùsobem: nejdøíve je prozkoumáno, zda má hráè lep¹í u¾itek z jakékoliv ryzí strategie, kterou mù¾e hrát. Pokud ¾ádná taková strategie není zaène hráè $i$ náhodnì generovat strategie z mno¾iny $\Delta_i$. Tuto strategii si pak zvolí za vlastní a zkoumá zda má s náhodnou strategií u¾itek vìt¹í ne¾ se zkoumaným potenciálním Nashovým ekvilibriem. Jako maximální hodnota, o kterou se mù¾e u¾itek zvý¹it, byla experimentálnì zvolena $10^{-4}$. Testù s náhodným generováním je provedeno $1000$ pro ka¾dého hráèe. Pokud zkoumaný strategický profil obstojí v ka¾dém testu, je test úspì¹ný a strategický profil prohlá¹en za Nashovo ekvilibrium.
+
 
 \chapter{Experimenty}
+\Blindtext
+\Blindtext
+
 
 \chapter{Závìr}
 
