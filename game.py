@@ -10,7 +10,7 @@ import scipy.optimize
 import sys
 import logging
 import cmaes
-
+import ipdb
 
 class Game(object):
     METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
@@ -463,7 +463,7 @@ class Game(object):
             if checkNE:
                 #self.checkNE(map(lambda x: round(x, 4), ne))
                 self.checkNE(ne)
-            return result
+        return result
 
     def checkNE(self, strategy_profile, num_tests=1000, accuracy=1e-4):
         """

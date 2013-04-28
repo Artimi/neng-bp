@@ -555,7 +555,7 @@ Zde je pøedstaven celý algoritmus metody CMAES. Je v nìm i zahrnuto restartování
 \end{algorithm}
 
 \chapter{Implementace}
-V této kapitole budou popsány implementaèní detaily nástroje pro výpoèet Nashova ekvilibria. Výstupem této práce je aplikace pracující v pøíkazovém øádku, která na vstupu oèekává hru ve formátu \texttt{.nfg}, který je standardem pro program Gambit~\cite{mckelvey2006gambit} øe¹ící stejnou problematiku jako tato práce. Podle zvolených dal¹ích pøepínaèù popsaných v u¾ivatelském manuálu, podá na výstup zprávu o výsledku výpoètu.
+V této kapitole budou popsány implementaèní detaily nástroje pro výpoèet Nashova ekvilibria, který byl pracovnì pojmenován \texttt{neng} (Nash Equilibria Non-cooperative Games). Výstupem této práce je aplikace pracující v pøíkazovém øádku, která na vstupu oèekává hru ve formátu \texttt{.nfg}, který je standardem pro program Gambit~\cite{mckelvey2006gambit} øe¹ící stejnou problematiku jako tato práce. Podle zvolených dal¹ích pøepínaèù popsaných v u¾ivatelském manuálu, podá na výstup zprávu o výsledku výpoètu.
 
 Jako implementaèní jazyk byl zvolen Python ve verzi $2.7$. Pro volbu tohoto jazyka byly následující dùvody:
 \begin{itemize}
@@ -574,13 +574,93 @@ Tøída \texttt{CMAES} implementuje celý algoritmus~\ref{alg:cmaes}. Tato tøíd pra
 \subsection{Test Nashova ekvilibria} \label{sec:test_ne}
 Pro provedení kontroly, zda nalezený strategický profil opravdu je Nashovo ekvilibrium, byl implementován test zkoumající, jestli jeden z hráèù bude mít tendence zmìnit svou strategii a tak si zvý¹it u¾itek ze hry. Tento test probíhá následujícím zpùsobem: nejdøíve je prozkoumáno, zda má hráè lep¹í u¾itek z jakékoliv ryzí strategie, kterou mù¾e hrát. Pokud ¾ádná taková strategie není zaène hráè $i$ náhodnì generovat strategie z mno¾iny $\Delta_i$. Tuto strategii si pak zvolí za vlastní a zkoumá zda má s náhodnou strategií u¾itek vìt¹í ne¾ se zkoumaným potenciálním Nashovým ekvilibriem. Jako maximální hodnota, o kterou se mù¾e u¾itek zvý¹it, byla experimentálnì zvolena $10^{-4}$. Testù s náhodným generováním je provedeno $1000$ pro ka¾dého hráèe. Pokud zkoumaný strategický profil obstojí v ka¾dém testu, je test úspì¹ný a strategický profil prohlá¹en za Nashovo ekvilibrium.
 
+\section{Testování a profilace}
+Pro testování byl pou¾it v Pythonu standardní modul \texttt{unittest}. V¹echny testy jsou dostupné na pøibaleném CD.
+
+Profilace a optimalizace probìhla v závìreèné fázi vývoje \texttt{neng}. K funkèní profilaci byl pou¾itých profiler v programu \texttt{IPython}. Profilováním standardního prùbìhu pøi výpoètu smí¹eného Nashova ekvilibria metodou CMA-ES se ukázaly nejslab¹í místa aplikace. Jak lze pøedpokládat je to Lyapunova funkce \texttt{v\_functio()} a z ní volána funkce pro zji¹tìní u¾itku daného strategické profilu \texttt{payoff()}. Na tyto funkce byl pou¾it \texttt{line\_profiler}, díky kterému byly nejnároènìj¹í operace pøepsány na nenároènìj¹í variantu. Díky tomu byl napøíklad èas výpoètu smí¹eného Nashova ekvilibria metodou CMA-ES ve høe \texttt{2x2x2x2x2.nfg} sní¾en z prùmìrnì $22,0$ sekund na $11,0$ sekund (testováno na $10$ vzorcích).
 
 \chapter{Experimenty}
-\Blindtext
-\Blindtext
+V této èásti se budeme zabývat experimenty nad programem. Bude prozkoumána hlavnì èasová nároènost, a správnost výpoètu. Výsledky budou porovnány s vhodnými konkurenty. Nejdøíve bude prozkoumána nároènost implementace algoritmu pro výpoèet ryzího Nashova ekvilibria hrubou silou~\ref{alg:pne_brute_force} a bude porovnána s programem \texttt{gambit-enumpure}. Dále bude prozkoumán algoritmus vyèíslení domén~\ref{alg:support_enumeration} za konkurenta jsem v této úloze zvolil program \texttt{gambit-enummixed}. Poslední experiment se zabývá minimalizací Lyapunovy funkce~\ref{def:lyapunov_function} pomocí metody CMA-ES, která je implementována v programu \texttt{neng}, a v porovnání s dal¹ími metodami L-BFGS-B a SLSQP, které pochází z balíku \texttt{scipy.optimize}.
 
+Experimenty jsou k nalezení na pøilo¾eném CD v souboru \texttt{performance\_tests.py}\footnote{Tento soubor slou¾í èistì jen pro úèely provedení experimentù. Nebyl nijak odladìn ani pøi jeho psaní nebyl brán zøetel na výkon. Je pøilo¾en pouze k pøedvedení metodiky experimentování.}. Pro ka¾dý experiment je pøipravena sada her s rùznou obtí¾ností. Nashovo ekvilibrium v ka¾dé høe je vypoèítáno daným programem a metodou, je zapsáno trvání toho výpoètu. Pokud nebylo Nashovo ekvilibrium nalezeno, není tento èas pou¾it (výjimka je u výpoètu ryzího Nashova ekvilibria, zde nenalezení ryzího ekvilibria neznamená chybu programu, ale vlastnost hry). Dále je pou¾it test Nashova ekvilibria pøedveden v kapitole~\ref{sec:test_ne}. Pokud ekvilibrium tímto testem neprojde je trvání tohoto výpoètu také zahozeno. Po dokonèení zvolených experimentù jsou soubory s èasy zálohovány a vytvoøeny grafy pomocí knihovny \texttt{matplotlib}.
+
+\section{Ryzí Nashovo ekvilibrium} \label{sec:pne_experiment}
+Pro úèely testování funkènosti výpoètu v¹ech ryzích Nashových ekvilibrií hrubou silou (algoritmus~\ref{alg:pne_brute_force}) byly vygenerovány hry pomocí programu \texttt{Gamut}, který generuje rùzné tøídy nekooperativních her. Pro generování byl pou¾it náhodný výbìr, do které tøídy má hra spadat. Pro úèely experimentování byly vygenerovány o $2$ a¾ $7$ hráèích, o rùzných poètech strategií.
+
+Jako protivníka mého algoritmu jsem vybral program \texttt{gambit-enumpure} z balíku \texttt{gambit}. Tento program provádí výpoèet v¹ech ryzích Nashových ekvilibrií, tak¾e provádí pøesnì to co metoda \texttt{getPNE()} z mého algoritmu.
+
+Následující grafy jsou závislosti èasu na poètu strategií jednotlivých hráèù.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/pne2}
+\caption{Experiment na dvouhráèových hrách.}
+\label{fig:pne2}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/pne3}
+\caption{Experiment na tøíhráèových hrách.}
+\label{fig:pne3}
+\end{figure}
+
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/pne4}
+\caption{Experiment na ètyøhráèových hrách.}
+\label{fig:pne4}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/pne5}
+\caption{Experiment na pìtihráèových hrách.}
+\label{fig:pne5}
+\end{figure}
+
+Z experimentu~\ref{fig:pne2} a ~\ref{fig:pne3} mù¾eme vidìt, ¾e èasový vývoj výpoètu je exponenciální, co¾ splnilo oèekávání. Dále si lze v¹imnout, ¾e program \texttt{gambit-enumpure} je rychlej¹í ne¾ mùj program \texttt{neng} s metodou výpoètu \texttt{pne}. To by se dalo vysvìtlit tím, ¾e program \texttt{gambit-enumpure} je napsán v jazyce C++ a je tedy kompilovaný, naproti tomu \texttt{neng} je napsán ve skriptovací jazyce Python, který je z podstaty pomalej¹í.
+
+\section{Vyèíslení domén}
+V tomto experimentu budeme zkoumat èasovou nároènost a správnost výpoètu v¹ech smí¹ených Nashových ekvilibrií v dvouhráèových hrách pomocí algoritmu~\ref{alg:support_enumeration}.
+
+Pro tento experiment byl pou¾it také program \texttt{Gamut} generující nekooperativní hry. Stejnì jako v minulém experimentu byly generovány hry z náhodné tøídy s náhodnými u¾itky. Byly vygenerovány hry v rozsahu strategií $2$ a¾ $14$ pro ka¾dého hráèe.
+
+Následující graf je graf závislosti èasu na poètu strategií pro oba hráèe.
+ 
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/sup_enum}
+\caption{Graf èasové nároènosti (v logaritmickém mìøítku) výpoètu smí¹eného Nashova ekvilibria pomocí metody vyèíslení domén v porovnání s programem \texttt{gambit-enummixed}}
+\label{fig:sup_enum}
+\end{figure}
+
+Z grafu lze vyèíst, ¾e je program \texttt{gambit-enummixed} rychlej¹í pro poèet strategií $2$ a¾ $11$. Za pøedpokladu, ¾e by byla zachována stejná tendence rùstu obou funkcí, je mo¾no pøedpovídat, ¾e by mùj program \texttt{neng} program \texttt{gambit-enummixed} pøedèil v nároènìj¹ích hrách.
+
+\section{Minimalizace Lyapunovy funkce}
+Experiment zkoumající nejdùle¾itìj¹í èást mého programu, tedy minimalizaci Lyapunovy funkce~\ref{def:lyapunov_function}, byl provádìn hned se tøemi metodami pro minimalizaci funkce: CMA-ES~\ref{alg:cmaes}, implementována v \texttt{neng}, L-BFGS-B a SLSQP, pøejaté z balíku \texttt{scipy.optimize}. Pùvodním zámìrem bylo pou¾ít více metod z tohoto balíku~\footnote{Pro pøehled tìchto metod nav¹tivte \url{http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html\#scipy.optimize.minimize}}
+¾ádná dal¹í z nich v¹ak nezvládla spolehlivì dokonvergovat k výsledku s dostateènou pøesností a s maximálním poètem vyhodnocení objektivní funkce.
+
+Testovací skupina her byla pøevzata z nástroje \texttt{Gambit}, a jsou to stejné hry, které byly pou¾ity v èlánku~\cite{pavlidis2005computing} a známé hry jako matching pennies~\ref{tab:matching_pennies} a vìzòovo dilema~\ref{tab:prisoners_dilemma}. Jsou to hry následující (v¹echny tyto hry jsou k nalezení na pøilo¾eném CD):
+
+\begin{description}
+\item[matchingpennies.nfg]~\ref{tab:matching_pennies} dvouhráèová hra s jedním smí¹eným ekvilibriem.
+\item[prisoners.nfg]~\ref{tab:prisoners_dilemma} dvouhráèová hra s jedním ryzím Nashovým ekvilibriem, které je øe¹ením v dominujících strategiích.
+\item[coord333.nfg] tøíhráèová s tøemi strategiemi pro ka¾dého hráèe. Tato hra má celkem $13$ Nashových ekvilibrií. 
+\item[coord4.nfg] dvouhráèová hra se ètyømi strategiemi pro oba hráèe. Tato hra má celkem $15$ Nashových ekvilibrií.
+\item[2x2x2.nfg] tøíhráèová hra se dvìma strategiemi pro ka¾dého hráèe. Má celkem $9$ Nashových ekvilibrií.
+\item[2x2x2x2.nfg] ètyøhráèová hra se dvìma strategiemi pro ka¾dého hráèe. Tato hra je øe¹itelná $3$ Nashovými ekvilibrii.
+\item[2x2x2x2x2.nfg] pìtihráèová hra se dvìma strategiemi pro ka¾dého hráèe. Tato hra je charakterizována $5$ Nashovými ekvilibrii.
+\end{description}
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{fig/mne}
+\caption{Graf èasové nároènosti jednotlivých metod výpoètu smí¹eného Nashova ekvilibria na rùzných hrách.}
+\label{fig:mne}
+\end{figure}
+
+Na Obrázku~\ref{fig:mne} mù¾eme vidìt èasovou nároènost jednotlivých metod, které øe¹í popsané hry. Metoda CMA-ES je pomalej¹í ne¾ metody SLSQP a L-BFGS-B, ale jeliko¾ rozdíl není nijak markantní mù¾eme o ní prohlásit, ¾e je srovnatelnì nároèná. Její hor¹í výsledky si mù¾eme vysvìtlit rùznou implementací tìchto metod. Metody SLSQP a L-BFGS-B jsou souèástí knihovny \texttt{scipy}, ta je celá napsána v jazyce C pro nejvìt¹í efektivitu a v jazyce Python je jen abstraktní vrstva pro volání tìchto funkcí.
+
+Také je tøeba podotknout, ¾e metoda CMA-ES vypoèítala Nashovy ekvilibria pøesnìji. Kvùli opakovaným neúspìchùm metod L-BFGS-B a SLSQP v testu Nashova ekvilibria~\ref{sec:test_ne}, bylo nutno zohlednit práh pro u¾itky pøi generování nových smí¹ených strategií na hodnotu $0,001$. Metoda CMA-ES spolehlivì pracuje s pøesností $0,0001$.
 
 \chapter{Závìr}
+
 
 
 %=========================================================================
