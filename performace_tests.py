@@ -10,6 +10,8 @@ import pylab
 #import scipy.interpolate as ip
 import pickle
 import game
+import ipdb
+import os
 
 GAMES_DIR = "/home/psebek/projects/bp/neng/games/"
 GAMES_DIR_TWOP = "/home/psebek/projects/bp/neng/games/twop/"
@@ -31,7 +33,7 @@ MAIN_GAMES_NAMES = ['coord333', 'coord4','2x2x2', '2x2x2x2', '2x2x2x2x2', '5x5x5
 
 PLOT_LINES = ['rs--', 'g^--', 'bo--']
 
-TEST_NE = False
+TEST_NE = True
 CHECK_RETURN_CODE = True
 
 def readNEs(ne_str):
@@ -69,7 +71,7 @@ def test_games(games, method, out_file, games_dir, repeat=1):
                 t, out, err = run_command([method, "-q" , games_dir + game_name])
             else:
                 t, out, err = run_command([SCRIPT, "-f=%s" % games_dir + game_name, "-m=%s" % method])
-            if TEST_NE and out:
+            if t is not None and TEST_NE and out:
                 with open(games_dir + game_name) as f:
                     g = game.Game(f.read())
                 nes = readNEs(out)
@@ -203,6 +205,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', action='store_true')
     parser.add_argument('-l', action='store_true')
     args = parser.parse_args()
+    os.environ['TERM']='dumb'
     if args.t:
         two_players()
     if args.p:

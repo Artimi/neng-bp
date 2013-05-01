@@ -237,13 +237,14 @@ class Game(object):
         v = 0.0
         acc = 0
         deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
-        strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
-        out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2)
-        v += out_of_box_penalty * 10
+        deep_strategy_profile = self.normalize_deep_strategy_profile(deep_strategy_profile)
+        #strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
+        #out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2)
+        #v += out_of_box_penalty * 10
         for player in range(self.num_players):
             u = self.payoff(deep_strategy_profile, player)
-            one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
-            v += one_sum_penalty
+            #one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
+            #v += one_sum_penalty
             acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
                 x = self.payoff(deep_strategy_profile, player, pure_strategy)
@@ -305,6 +306,27 @@ class Game(object):
         @returns np.array normalized strategy distribution
         """
         return np.abs(strategy) / np.sum(np.abs(strategy))
+
+    def normalize_deep_strategy_profile(self, deep_strategy_profile):
+        for index, strategy in enumerate(deep_strategy_profile):
+            deep_strategy_profile[index] = self.normalize(strategy)
+        return deep_strategy_profile
+
+
+    def normalize_strategy_profile(self, strategy_profile):
+        """
+        Normalize whole strategy profile by strategy of each player
+
+        @parameter strategy_profile to be normalized
+        @return normalized strategy_profile
+        """
+        result = []
+        acc = 0
+        for i in self.shape:
+            strategy = np.array(strategy_profile[acc:acc+i])
+            result.extend(self.normalize(strategy))
+            acc += i
+        return result
 
     def findEquilibria(self, method='cmaes'):
         """
@@ -448,6 +470,7 @@ class Game(object):
         if self.degenerated:
             logging.warning("Game is degenerated")
         for index, ne in enumerate(nes):
+            ne = self.normalize_strategy_profile(ne)
             print_ne = list(ne)
             # assure that printed result are in same shape as self.init_shape
             if self.deleted_strategies is not None:

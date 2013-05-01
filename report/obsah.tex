@@ -327,27 +327,32 @@ Mìjme hru $\Gamma^m = (Q; \{\Delta_i\}_{i \in Q}; \{\pi_i\}_{i \in Q})$ a smí¹en
 
 Dùkaz této vìty mù¾eme najít v McKelveyho èlánku~\cite[str. 3]{mckelvey1998laipunov}.
 
+Zde je tøeba upozornit, ¾e obecná Lyapunova funkce je definována na $\mathbb{R}^m$. My v¹ak hledáme bod z prostoru $\Delta \subset \mathbb{R}^m$. Mimo tento prostor nejsou operace se hrou definovány, napøíklad nemù¾eme spoèítat u¾itek ze hry hráèe $i$, pokud strategický profil obsahuje zápornou pravdìpodobnost hraní ryzí strategie $\sigma_i(s_j) < 0$ pro $\sigma_i \in \Delta_i$ a $s_j \in S_i$.
 
+Pro vìt¹í explicitnost si tedy definujeme vektor $\textbf{p}_i \in \mathbb{R}^{m_i}$, pro ka¾dého hráèe $i$, jeho¾ prvky mù¾eme zapsat jako $\textbf{p}_i = (p_{i1}, p_{i2}, \dots, p_{im_i})$. Vektor $\textbf{p}$ je potom definován takto $\textbf{p} = (\textbf{p}_1, \textbf{p}_2, \dots, \textbf{p}_N)$.
 
-Pro úèely vlastní minimalizace funkce je vhodné pøidat k funkci $v$ penalizaci  pro body, které nele¾í v $\Delta$ podle rovnice~\ref{eq:set_mixed_strategies}. Tento pøístup je ostatnì popsán i v tutoriálu pro metodu CMA-ES~\cite[str. 29]{hansen2011cma}.\footnote{V èlánku \textit{A Laipunov Function for Nash Equilibria}~\cite{mckelvey1998laipunov}, je první èlen roven pouze$\sum_{i \in Q}\sum_{j \in m_i} \{\min[\sigma_{ij},0]\} ^ 2$, není tedy udávána penalizace za èíslo které pøekroèí $1,0$, já jsem tam tuto penalizaci pøidal pro vìt¹í explicitnost.}
+Abychom zajistili, ¾e $\textbf{p}$ bude patøit do $\Delta$ opatøíme Lyapunovu funkci je¹tì penalizací, pro body, které jsou mimo prostor $\Delta$. Tento pøístup je ostatnì popsán i v tutoriálu pro metodu CMA-ES~\cite[str. 29]{hansen2011cma}.\footnote{V èlánku \textit{A Laipunov Function for Nash Equilibria}~\cite{mckelvey1998laipunov}, je první èlen roven pouze$\sum_{i \in Q}\sum_{j \in m_i} \{\min[\sigma_{ij},0]\} ^ 2$, není tedy udávána penalizace za èíslo které pøekroèí $1,0$, já jsem tam tuto penalizaci pøidal pro vìt¹í explicitnost.}
 
 \begin{equation}
-w(\sigma) = v(\sigma) + \sum_{i \in Q}\sum_{j \in m_i} \left\{ \min[\sigma_{ij}, 0] + \max[\sigma_{ij},1] -1 \right\}^2 + \sum_{i \in Q} \left( 1 - \sum_{j \in m_i} p_{ij} \right)^2 
+w(\textbf{p}) = v(\textbf{p}) + \sum_{i \in Q}\sum_{s_j \in S_i} \left\{\min[p_{ij}, 0] + \max[p_{ij},1] -1 \right\}^2 + \sum_{i \in Q} \left( 1 - \sum_{s_j \in S_i} p_{ij} \right)^2 
 \end{equation}
 
-V èlánku \textit{Computing Nash equilibria through computational intelligence methods}~\cite{pavlidis2005computing} je pou¾ita jen funkce $v$ a pro zaji¹tìní rovnice~\ref{eq:set_mixed_strategies} je pou¾ita normalizace pøes hodnoty zkoumaného bodu:
+První èlen po vlastní Lyapunovì funkci zaji¹»uje penalizaci bodù mimo interval $\langle 0, 1 \rangle$. Mìjme hráèe $i \in Q$ a strategii $s_j \in S_i$. Pokud je $p_{ij}$ men¹í ne¾ $0$ nebo vìt¹í ne¾ $1$, je k výsledku Lyapunovy funkce pøidána tato odchylka umocnìná na druhou. Druhý èlen penalizuje takové body, které odpovídají celému pravdìpodobnostnímu rozlo¾ení pøes smí¹enou strategii hráèe $i$, které se nerovnají $1$, tyto odchylky jsou potom seèteny a umocnìny na druhou. Touto úpravou zajistíme, ¾e lokální minimum bude v¾dycky le¾et jen v prostoru $\Delta$ a minimalizaèní metoda nebude mít tendenci tento prostor opou¹tìt.
+
+Jako alternativní øe¹ení je v èlánku \textit{Computing Nash equilibria through computational intelligence methods}~\cite{pavlidis2005computing} pou¾ita jen Lyapunova funkce funkce $v$ a pro zaji¹tìní rovnice~\ref{eq:set_mixed_strategies} je pou¾ita normalizace pøes hodnoty zkoumaného bodu:
 \begin{equation}
-\sigma_{ij}^p = \frac{\| \sigma_{ij} \|}{\sum_{j=1}^{m_i} \| \sigma_{ij} \|}
+\forall i \in Q: p_{ij}^p = \frac{\|  p_{ij} \|}{\sum_{j=1}^{m_i} \| p_{ij} \|}
 \end{equation}
 
-Pøièem¾ normalizace probíhá pouze pro výpoèet hodnoty funkce, pùvodní zkoumaný strategický profil je zachován a nenahrazen opraveným profilem, 
- jinak by byla pou¾itá metoda minimalizace výraznì degradována~\cite[str. 123]{pavlidis2005computing}. Toto øe¹ení se podle autorovy zku¹enosti ukázalo jako ménì efektivní a proto nebylo v práci pou¾ito.
+Pøièem¾ normalizace probíhá pouze pro výpoèet hodnoty funkce, pùvodní zkoumaný strategický profil je zachován a nenahrazen opraveným profilem, jinak by byla pou¾itá metoda minimalizace výraznì degradována~\cite[str. 123]{pavlidis2005computing}.
+
+Toto øe¹ení jsem otestoval a ukázalo se jako Toto øe¹ení se podle autorovy zku¹enosti ukázalo jako ménì efektivní a proto nebylo v práci pou¾ito.
 
 \subsection{Covariance Matrix Adaptation - Evolution Strategy}
 
 CMA-ES je stochastická metoda pro optimalizaci nelineárních, nekonvexních funkcí s reálnými parametry (se spojitou doménou). Pracuje na principu adaptace kovarianèní matice pro pou¾ití v \textit{vícerozmìrným normálním rozdìlením} (angl. mutlivariate normal distribution), kterým se vzorkují nové hledané body. Tato metoda zde bude pou¾ita pro \textit{jednokriteteriální optimalizaci} (angl. single-objective optimization) Lyapunovy funkce~\ref{def:lyapunov_function}. Pracuje pouze s objektivní funkcí, jedná se tedy o takzvanou \textit{black-box} optimalizaci. Metoda CMA-ES zde bude pøedstavena jen v takové míøe jaká je dùle¾itá pro tuto práci, tzn. pøehledovì, pro hlub¹í pochopení souvislostí je tøeba proèíst dané materiály. V následujících sekcích budu vycházet z \textit{CMA tutoriálu}~\cite{hansen2011cma}.\footnote{Nìkteré vzorce odvozené v prùbìhu výkladu metody v~\cite{hansen2011cma} nejsou shodné se vzorci uvedenými v závìreèném shrnutí, v této práci byly tyto vzorce opraveny podle závìreèného shrnutí, aby byla celá metoda konzistentní.}
 
-\begin{figure}[H]
+\begin{figure}[H] 
 \includegraphics[width=\textwidth]{fig/ellipsoids_cma}
 \caption{Pøehled elipsoidù znaèící stejnou hustotu dvourozmìrného normálního rozlo¾ení. Kde $\sigma \in \mathbb{R}_+$, $\textbf{I}$ je jednotková matice, $\textbf{D}$ je diagonální matice, $\textbf{C}$ je symetrická pozitivnì definitivní matice. Tenké linky znaèí vrstevnice objektivní funkce.~\cite[str. 6]{hansen2011cma}}
 \label{fig:ellipsoids_cma}
@@ -599,7 +604,8 @@ Jako implementaèní jazyk byl zvolen Python ve verzi $2.7$. Pro volbu tohoto jazy
 \end{itemize}
 
 \section{Implementaèní detaily}
-Program se skládá ze dvou tøíd, které zaji¹»ují ve¹keré funkce potøebné pro projekt.
+
+Program se skládá ze dvou tøíd, které zaji¹»ují ve¹keré funkce potøebné pro projekt. Implementace metod je programovým pøepisem matematických postupù a definic z kapitoly~(\ref{sec:algorithms_ne}).
 
 Tøída \texttt{Game} obaluje celou hru, zpracovává vstup, vypracovává výstup, provádí základní analýzu hry (napø. zda je hra degenerovaná), provádí iterativní eliminaci dominovaných strategií \texttt{Game.iteratedEliminationDominatedStrategies()} (algoritmus~\ref{alg:iterative_elimination}), poèítá ryzí Nashovo ekvilibrium hrubou silou \texttt{Game.getPNE()} (algoritmus~\ref{alg:pne_brute_force}), smí¹ené Nashovo ekvilibrium vyèíslením domén \texttt{Game.support\_enumeration()}(algoritmus~\ref{alg:support_enumeration}), provádí test zda nalezený strategický profil je opravdu Nashovo ekvilibrium \texttt{Game.checkNE()}  (kapitola~\ref{sec:test_ne}).
 
