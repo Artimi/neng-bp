@@ -10,6 +10,7 @@ import pylab
 #import scipy.interpolate as ip
 import pickle
 import game
+import ipdb
 import os
 
 GAMES_DIR = "/home/psebek/projects/bp/neng/games/"
