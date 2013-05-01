@@ -210,16 +210,22 @@ class Game(object):
                         break
                     player_strategy_profile = np.zeros(self.shape[player])
                     player_strategy_profile[list(combination[player])] = probabilities
-                    # best response condition
-                    for pure_strategy in combination[(player + 1) % 2]:
-                        if not any(br[(player + 1) % 2] == pure_strategy
-                                   and br[player] in combination[player]
-                                   for br in self.brs[player]):
+                    mne.append(player_strategy_profile)
+                #best response
+                if is_mne:
+                    for player in xrange(self.num_players):
+                        if player == 0:
+                            oponent_strategy = mne[(player + 1) % 2].reshape(1, self.shape[1])
+                        else:
+                            oponent_strategy = mne[(player + 1) % 2].reshape(self.shape[0], 1)
+                        payoffs = np.sum(self.array[player] * oponent_strategy, axis=(player + 1) % 2)
+                        maximum = np.max(payoffs)
+                        br = tuple(np.where(abs(payoffs - maximum)< 1e-6)[0])
+                        if br != combination[player]:
                             is_mne = False
                             break
-                    mne.extend(player_strategy_profile)
                 if is_mne:
-                    result.append(mne)
+                    result.append([item for sublist in mne for item in sublist])
         return result
 
     def v_function(self, strategy_profile):
@@ -274,7 +280,7 @@ class Game(object):
         elif len(strategy_profile) == self.sum_shape:
             deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
         else:
-            raise Exception("Length of strategy_profile: '{0}', does not match.")
+            raise Exception("Length of strategy_profile: '{0}', does not match.".format(strategy_profile))
         product = reduce(lambda x, y: np.tensordot(x, y, 0), deep_strategy_profile)
         result = np.sum(product * self.array[player])
         return result
