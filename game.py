@@ -113,7 +113,10 @@ class Game(object):
                 for p in xrange(self.num_players):
                     self.array[p] = np.delete(self.array[p], strategies, player)
                 for strategy in strategies:
-                    self.deleted_strategies[player] = np.append(self.deleted_strategies[player], strategy + np.sum(self.deleted_strategies[player] <= strategy))
+                    original_strategy = strategy
+                    while original_strategy in self.deleted_strategies[player]:
+                        original_strategy += 1
+                    self.deleted_strategies[player] = np.append(self.deleted_strategies[player], original_strategy)#strategy + np.sum(self.deleted_strategies[player] <= strategy))
                 self.shape[player] -= len(strategies)
             self.sum_shape = sum(self.shape)
             dominated_strategies = self.getDominatedStrategies()
@@ -124,6 +127,8 @@ class Game(object):
         """
         @return True|False if game is said as degenerated
         """
+        if self.num_players != 2:
+            return False
         if self.brs is None:
             self.getPNE()
         num_brs = [len(x) for x in self.brs]
@@ -203,9 +208,8 @@ class Game(object):
                     if not np.all(probabilities >= 0):
                         is_mne = False
                         break
-                    player_strategy_profile = [0.0] * self.shape[player]
-                    for index, i in enumerate(combination[player]):
-                        player_strategy_profile[i] = probabilities[index]
+                    player_strategy_profile = np.zeros(self.shape[player])
+                    player_strategy_profile[list(combination[player])] = probabilities
                     # best response condition
                     for pure_strategy in combination[(player + 1) % 2]:
                         if not any(br[(player + 1) % 2] == pure_strategy
@@ -230,6 +234,7 @@ class Game(object):
         @params strategy_profile list of parameters to function
         @return value of v_function in given strategy_profile
         """
+        ipdb.set_trace()
         v = 0.0
         acc = 0
         deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
@@ -286,7 +291,7 @@ class Game(object):
         offset = 0
         deep_strategy_profile = []
         for player, i in enumerate(self.shape):
-            strategy = np.array(strategy_profile[offset:offset+i])
+            strategy = strategy_profile[offset:offset+i]
             deep_strategy_profile.append(strategy)
             offset += i
         return deep_strategy_profile
@@ -510,6 +515,7 @@ class Game(object):
 
 if __name__ == '__main__':
     import argparse
+    import time
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file')
     parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
@@ -526,7 +532,9 @@ if __name__ == '__main__':
 
     with open(args.file) as f:
         game_str = f.read()
+    start = time.time()
     g = Game(game_str)
+    logging.debug("Reading the game took: {0} s".format(time.time() - start))
     if args.elimination:
         g.iteratedEliminationDominatedStrategies()
     result = g.findEquilibria(args.method)
