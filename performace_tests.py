@@ -59,6 +59,7 @@ def run_command(command):
 def test_games(games, method, out_file, games_dir, repeat=1):
     times = []
     for game_name in games:
+        failed = 0
         rep_t = []
         for i in range(repeat):
             print method + ":" + games_dir + game_name
@@ -77,12 +78,19 @@ def test_games(games, method, out_file, games_dir, repeat=1):
                         t = None
                         print "Test not passed: ", ne
                         break
-            rep_t.append(t)
-        t = sum(rep_t) / len(rep_t)
+            if t is None:
+                failed += 1
+            else:
+                rep_t.append(t)
+        try:
+            t = sum(rep_t) / len(rep_t)
+        except ZeroDivisionError:
+            t = None
         times.append(t)
         with open(out_file,'w') as f:
             pickle.dump(times, f)
         print t
+        print "Failed: ", failed, ", succeed: ", repeat - failed
     return times
         
 def save_plot(l, xlabel=None, title=None, filename=None, xticks_labels=None, legend_loc='upper left', bottom_adjust=None, yscale='linear', ymin=0.0, ymax_factor=1.1):
