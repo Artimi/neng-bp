@@ -26,8 +26,8 @@ RESULT_LYAPUNOV_DIR =  "/home/psebek/projects/bp/neng/tests_results/lyapunov/"
 
 METHODS = ['L-BFGS-B', 'SLSQP', 'cmaes']
 
-MAIN_GAMES = ['matchingpennies.nfg', 'prisoners.nfg', 'coord333.nfg', 'coord4.nfg','2x2x2.nfg', '2x2x2x2.nfg', '2x2x2x2x2.nfg']
-MAIN_GAMES_NAMES = ['pennies', 'prisoners', 'coord333', 'coord4','2x2x2', '2x2x2x2', '2x2x2x2x2']
+MAIN_GAMES = ['coord333.nfg', 'coord4.nfg','2x2x2.nfg', '2x2x2x2.nfg', '2x2x2x2x2.nfg', '5x5x5.nfg', '8x8x8.nfg']
+MAIN_GAMES_NAMES = ['coord333', 'coord4','2x2x2', '2x2x2x2', '2x2x2x2x2', '5x5x5', '8x8x8']
 
 PLOT_LINES = ['rs--', 'g^--', 'bo--']
 

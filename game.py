@@ -234,7 +234,6 @@ class Game(object):
         @params strategy_profile list of parameters to function
         @return value of v_function in given strategy_profile
         """
-        ipdb.set_trace()
         v = 0.0
         acc = 0
         deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
@@ -445,6 +444,7 @@ class Game(object):
         @params payoff print also informations about players payoff
         """
         result = ""
+        success = True
         if self.degenerated:
             logging.warning("Game is degenerated")
         for index, ne in enumerate(nes):
@@ -467,8 +467,9 @@ class Game(object):
                 result += "Payoff " + ", ".join(s) + "\n"
             if checkNE:
                 #self.checkNE(map(lambda x: round(x, 4), ne))
-                self.checkNE(ne)
-        return result
+                if not self.checkNE(ne):
+                    success = False
+        return result, success
 
     def checkNE(self, strategy_profile, num_tests=1000, accuracy=1e-4):
         """
@@ -539,6 +540,10 @@ if __name__ == '__main__':
         g.iteratedEliminationDominatedStrategies()
     result = g.findEquilibria(args.method)
     if result is not None:
-        print g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)
+        text, success =  g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)
+        if success:
+            print text
+        else:
+            sys.exit("Nash equilibrium did not pass the test.")
     else:
         sys.exit("Nash equilibrium was not found.")
