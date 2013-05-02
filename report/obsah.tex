@@ -248,10 +248,10 @@ Algoritmus nejdøíve zjistí zda hra obsahuje striktnì dominované strategie. Pokud
 \caption{Iterativní eliminace dominovaných strategií} \label{alg:iterative_elimination}
 \begin{algorithmic}
 
-\State $dominated\_strategies \gets getDominatedStrategies()$
+\State $dominatedStrategies \gets getDominatedStrategies()$
 \While{$dominated\_strategies \neq \emptyset$}
 	\State Delete dominated strategies from game
-	\State $dominated\_strategies \gets getDominatedStrategies()$
+	\State $dominatedStrategies \gets getDominatedStrategies()$
 \EndWhile
 \end{algorithmic}
 \end{algorithm}
@@ -598,7 +598,7 @@ V této kapitole budou popsány implementaèní detaily nástroje pro výpoèet Nashova
 
 Jako implementaèní jazyk byl zvolen Python ve verzi $2.7$. Pro volbu tohoto jazyka byly následující dùvody:
 \begin{itemize}
-\item Díky skvìlé knihovnì \texttt{NumPy}~[Z] a \texttt{SciPy}~[Z] jsou v Pythonu v¹echny potøebné matematické operace snadno dostupné a efektivní. Nabízí také rozsáhlou knihovnu pro tvorbu grafù \texttt{Matplotlib}~[Z].
+\item Díky skvìlé knihovnì \texttt{NumPy}~\cite{oliphant2007numpy} a \texttt{SciPy}~\cite{jones2001scipy} jsou v Pythonu v¹echny potøebné matematické operace snadno dostupné a efektivní. Nabízí také rozsáhlou knihovnu pro tvorbu grafù \texttt{Matplotlib}~\cite{hunter2007matplotlib}.
 \item Jazyk Python je pøehledný, kód tak mù¾e lépe slou¾it jako uèební pomùcka.
 \item Nabízí nástroje pro snadnou správu projektu jako je debugger pdb, interaktivní odchytávání výjimek pomocí programu IPython, profiler \texttt{profile}, \texttt{line-profiler}.
 \end{itemize}
@@ -614,13 +614,41 @@ Tøída \texttt{CMAES} implementuje celý algoritmus~\ref{alg:cmaes}. Implementace 
 \subsection{Test Nashova ekvilibria} \label{sec:test_ne}
 Pro provedení kontroly, zda nalezený strategický profil opravdu je Nashovo ekvilibrium, byl implementován test zkoumající, jestli jeden z hráèù bude mít tendence zmìnit svou strategii a tak si zvý¹it u¾itek ze hry. Tento test probíhá následujícím zpùsobem: nejdøíve je prozkoumáno, zda má hráè lep¹í u¾itek z jakékoliv ryzí strategie, kterou mù¾e hrát. Pokud ¾ádná taková strategie není zaène hráè $i$ náhodnì generovat strategie z mno¾iny $\Delta_i$. Tuto strategii si pak zvolí za vlastní a zkoumá zda má s náhodnou strategií u¾itek vìt¹í ne¾ se zkoumaným potenciálním Nashovým ekvilibriem. Jako maximální hodnota, o kterou se mù¾e u¾itek zvý¹it, byla experimentálnì zvolena $10^{-4}$. Testù s náhodným generováním je provedeno $1000$ pro ka¾dého hráèe. Pokud zkoumaný strategický profil obstojí v ka¾dém testu, je test úspì¹ný a strategický profil prohlá¹en za Nashovo ekvilibrium.
 
+
+\begin{algorithm}
+\caption{Test Nashova ekvilibria} \label{alg:test_ne}
+\begin{algorithmic}
+\State{$\sigma^*$}
+\Comment{zkoumaný strategický profil}
+\ForAll{$i \in Q$}
+	\ForAll{$s_j \in S_i$}
+	\If{$U_i(s_j, \sigma_{-i}^*) - U_i(\sigma^*) > 0,0001$}
+		\State \Return False
+		\Comment{strategický profil neobstál test}
+	\EndIf
+	\EndFor
+	\For{$i= 1 \to 1000$}
+	\State $randomStrategy \gets random({\Delta_i})$
+	\If{$U_i(randomStrategy) - U_i(\sigma^*) > 0,0001$}
+		\State \Return False
+		\Comment{strategický profil neobstál test}
+	\EndIf
+	\EndFor
+\EndFor
+\State \Return True
+\Comment{strategický profil je Nashovo ekvilibrium}
+\end{algorithmic}
+\end{algorithm}
+
+Funkce $random(\Delta_i)$ generuje náhodné vektory z prostoru $\Delta_i$.
+
 \section{Testování a profilace}
 Pro testování byl pou¾it v Pythonu standardní modul \texttt{unittest}. V¹echny testy jsou dostupné na pøibaleném CD.
 
 Profilace a optimalizace probìhla v závìreèné fázi vývoje \texttt{NenG}. K funkèní profilaci byl pou¾itých profiler v programu \texttt{IPython}. Profilováním standardního prùbìhu pøi výpoètu smí¹eného Nashova ekvilibria metodou CMA-ES se ukázaly úzké hrdla aplikace. Jak lze pøedpokládat je to Lyapunova funkce \texttt{Game.v\_function()} a z ní volána funkce pro zji¹tìní u¾itku daného strategické profilu \texttt{Game.payoff()}. Na tyto funkce byl pou¾it \texttt{line\_profiler}, díky kterému byly nejnároènìj¹í operace pøepsány na nenároènìj¹í variantu. Díky tomu byl napøíklad èas výpoètu smí¹eného Nashova ekvilibria metodou CMA-ES ve høe \texttt{2x2x2x2x2.nfg} sní¾en z prùmìrnì $22,0$ sekund na $11,0$ sekund.
 
 \chapter{Experimenty} \label{sec:experiments}
-V této èásti se budeme zabývat experimenty nad programem. Bude prozkoumána hlavnì èasová nároènost, a správnost výpoètu. Výsledky budou porovnány s vhodnými konkurenty. Nejdøíve bude prozkoumána nároènost implementace algoritmu pro výpoèet ryzího Nashova ekvilibria hrubou silou~\ref{alg:pne_brute_force} a bude porovnána s programem \texttt{gambit-enumpure}. Dále bude prozkoumán algoritmus vyèíslení domén~\ref{alg:support_enumeration} za konkurenta jsem v této úloze zvolil program \texttt{gambit-enummixed}. Poslední experiment se zabývá minimalizací Lyapunovy funkce~\ref{def:lyapunov_function} pomocí metody CMA-ES, která je implementována v programu \texttt{neng}, a v porovnání s dal¹ími metodami L-BFGS-B a SLSQP, které pochází z balíku \texttt{scipy.optimize}.
+V této èásti se budeme zabývat experimenty nad programem. Bude prozkoumána hlavnì doba bìhu programu, a správnost výpoètu. Výsledky budou porovnány s vhodnými konkurenty. Nejdøíve bude prozkoumána nároènost implementace algoritmu pro výpoèet ryzího Nashova ekvilibria hrubou silou~(\ref{alg:pne_brute_force}) a bude porovnána s programem \texttt{gambit-enumpure}. Dále bude prozkoumán algoritmus Vyèíslení domén~(\ref{alg:support_enumeration}) za konkurenta jsem v této úloze zvolil program \texttt{gambit-enummixed}. Poslední experiment se zabývá minimalizací Lyapunovy funkce~(definice \ref{def:lyapunov_function}) pomocí metody CMA-ES, která je implementována v programu \texttt{neng}, a v porovnání s dal¹ími metodami L-BFGS-B a SLSQP, které pochází z balíku \texttt{scipy.optimize}.
 
 Experimenty jsou k nalezení na pøilo¾eném CD v souboru \texttt{performance\_tests.py}\footnote{Tento soubor slou¾í èistì jen pro úèely provedení experimentù. Nebyl nijak odladìn ani pøi jeho psaní nebyl brán zøetel na výkon. Je pøilo¾en pouze k pøedvedení metodiky experimentování.}. Pro ka¾dý experiment je pøipravena sada her s rùznou obtí¾ností. Nashovo ekvilibrium v ka¾dé høe je vypoèítáno daným programem a metodou, je zapsáno trvání toho výpoètu. Pokud nebylo Nashovo ekvilibrium nalezeno, není tento èas pou¾it (výjimka je u výpoètu ryzího Nashova ekvilibria, zde nenalezení ryzího ekvilibria neznamená chybu programu, ale vlastnost hry). Dále je pou¾it test Nashova ekvilibria pøedveden v kapitole~\ref{sec:test_ne}. Pokud ekvilibrium tímto testem neprojde je trvání tohoto výpoètu také zahozeno. Po dokonèení zvolených experimentù jsou soubory s èasy zálohovány a vytvoøeny grafy pomocí knihovny \texttt{matplotlib}.
 
@@ -631,30 +659,30 @@ Jako protivníka mého algoritmu jsem vybral program \texttt{gambit-enumpure} z ba
 
 Následující grafy jsou závislosti èasu na poètu strategií jednotlivých hráèù.
 
-\begin{figure}[H]
-\includegraphics[width=\textwidth]{fig/pne2}
-\caption{Experiment na dvouhráèových hrách.}
-\label{fig:pne2}
-\end{figure}
-
-\begin{figure}[H]
-\includegraphics[width=\textwidth]{fig/pne3}
-\caption{Experiment na tøíhráèových hrách.}
-\label{fig:pne3}
-\end{figure}
-
-
-\begin{figure}[H]
-\includegraphics[width=\textwidth]{fig/pne4}
-\caption{Experiment na ètyøhráèových hrách.}
-\label{fig:pne4}
-\end{figure}
-
-\begin{figure}[H]
-\includegraphics[width=\textwidth]{fig/pne5}
-\caption{Experiment na pìtihráèových hrách.}
-\label{fig:pne5}
-\end{figure}
+%\begin{figure}[H]
+%\includegraphics[width=\textwidth]{fig/pne2}
+%\caption{Experiment na dvouhráèových hrách.}
+%\label{fig:pne2}
+%\end{figure}
+%
+%\begin{figure}[H]
+%\includegraphics[width=\textwidth]{fig/pne3}
+%\caption{Experiment na tøíhráèových hrách.}
+%\label{fig:pne3}
+%\end{figure}
+%
+%
+%\begin{figure}[H]
+%\includegraphics[width=\textwidth]{fig/pne4}
+%\caption{Experiment na ètyøhráèových hrách.}
+%\label{fig:pne4}
+%\end{figure}
+%
+%\begin{figure}[H]
+%\includegraphics[width=\textwidth]{fig/pne5}
+%\caption{Experiment na pìtihráèových hrách.}
+%\label{fig:pne5}
+%\end{figure}
 
 Z experimentu~\ref{fig:pne2} a ~\ref{fig:pne3} mù¾eme vidìt, ¾e èasový vývoj výpoètu je exponenciální, co¾ splnilo oèekávání. Dále si lze v¹imnout, ¾e program \texttt{gambit-enumpure} je rychlej¹í ne¾ mùj program \texttt{neng} s metodou výpoètu \texttt{pne}. To by se dalo vysvìtlit tím, ¾e program \texttt{gambit-enumpure} je napsán v jazyce C++ a je tedy kompilovaný, naproti tomu \texttt{neng} je napsán ve skriptovací jazyce Python, který je z podstaty pomalej¹í.
 
@@ -662,23 +690,24 @@ Dal¹ím dùle¾itým èinitelem v dobì trvání celého skriptu je parsování vstupního s
 \begin{table}[H]
 
 
-\begin{tabular}{|c|c|c|c|c|} \hline
-Hra		& Velikost souboru [MB]	&  Èas ètení [s]	& Celkový èas [s] & Èas ètení / celkový \\ \hline
-p4a5.nfg	& 0,012					& 0,024				& 0,869 &  0,027 \\ \hline
-p4a10.nfg 	& 0,172					& 0,293				& 1,312 & 0,223 \\ \hline
-p4a15.nfg 	& 0,872					& 1,494				& 2,646 &  0.565 \\ \hline
-p4a20.nfg 	& 2,7					& 4,774				& 6,347 & 0,752 \\ \hline
-p4a25.nfg 	& 6,6					& 11,709			& 13,938 & 0,840 \\ \hline
-p4a30.nfg 	& 14					& 24,409			& 27,679 & 0,881 \\ \hline
-p4a35.nfg	& 26					& 45,502			& 50,502 &0,901  \\ \hline
+\begin{tabular}{|p{2cm}|p{5em}|p{5em}|p{6em}|p{6em}|p{5em}|} \hline
+Hra		& Velikost souboru [MB]	&  Èas ètení [s] & Èas výpoètu [s]  & Celkový èas [s] & Èas ètení / celkový èas \\ \hline
+p4a5.nfg	& 0,012					& 0,024	& 0,845			& 0,869 &  0,027 \\ \hline
+p4a10.nfg 	& 0,172					& 0,293	& 1,019			& 1,312 & 0,223 \\ \hline
+p4a15.nfg 	& 0,872					& 1,494	& 1,152		& 2,646 &  0.565 \\ \hline
+p4a20.nfg 	& 2,7					& 4,774	& 1,573			& 6,347 & 0,752 \\ \hline
+p4a25.nfg 	& 6,6					& 11,709&	2,229		& 13,938 & 0,840 \\ \hline
+p4a30.nfg 	& 14					& 24,409& 3,270			& 27,679 & 0,881 \\ \hline
+p4a35.nfg	& 26					& 45,502&	5,000		& 50,502 &0,901  \\ \hline
+
 \end{tabular}
 \caption{Tabulka ukazující vzrùstající pomìr mezi èasem pro ètení hry a celkovým èasem výpoètu se vzrùstající velikostí hry. Pro velké hry dosahuje parsování vstupního souboru $90\%$ celkového èasu.} \label{tab:read_sum_ratio}
 \end{table}
 
 Tabulka~\ref{tab:read_sum_ratio} ukazuje, ¾e u velkých her se dostává doba výpoètu ekvilibria do pozadí a velkou roli na celkovém èase hraje parsování vstupního souboru. Pro zmírnìní tohoto problému je tøeba prozkoumat mo¾nosti parsování vstupního souboru.
 
-\section{Vyèíslení domén}
-V tomto experimentu budeme zkoumat èasovou nároènost a správnost výpoètu v¹ech smí¹ených Nashových ekvilibrií v dvouhráèových hrách pomocí algoritmu~\ref{alg:support_enumeration}.
+\section{Smí¹ené Nashovo ekvilibrium ve dvouhráèových hrách}
+V tomto experimentu budeme zkoumat èasovou nároènost a správnost výpoètu v¹ech smí¹ených Nashových ekvilibrií v dvouhráèových hrách pomocí algoritmu~(\ref{alg:support_enumeration}).
 
 Pro tento experiment byl pou¾it také program \texttt{Gamut} generující nekooperativní hry. Stejnì jako v minulém experimentu byly generovány hry z náhodné tøídy s náhodnými u¾itky. Byly vygenerovány hry v rozsahu strategií $2$ a¾ $14$ pro ka¾dého hráèe.
 

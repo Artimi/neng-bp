@@ -179,9 +179,10 @@ class Game(object):
 
         @return set of NE computed by method support enumeration
         """
-        result = self.getPNE()
+        #result = self.getPNE()
+        result = []
         # for every numbers of supports
-        for num_supports in xrange(2, min(self.shape) + 1):
+        for num_supports in xrange(1, min(self.shape) + 1):
             logging.debug("Support enumearation for num_supports: {0}".format(num_supports))
             supports = []
             equal = [0] * num_supports
