@@ -9,8 +9,18 @@ import logging
 
 
 class CMAES(object):
+    """
+    Class CMAES represent algorithm Covariance Matrix Adaptation - Evolution
+    Strategy. It provides function minimization.
+    """
 
     def __init__(self, func, N, sigma=0.3, xmean=None):
+        """
+        @param func function to be minimized
+        @param N number of parameter of function
+        @param sigma step size of method
+        @xmean initial point, if None some is generated
+        """
         self.func = func
         self.N = N
         self.store_parameters = {'func': func,
@@ -38,9 +48,17 @@ class CMAES(object):
         self.tolxup = 1e4
         self.condition_cov_max = 1e14
         self.lamda = int(4 + 3 * np.log(self.N))
-        self.init_variables(sigma, xmean)
+        self.initVariables(sigma, xmean)
 
-    def init_variables(self, sigma, xmean, lamda_factor=1):
+    def initVariables(self, sigma, xmean, lamda_factor=1):
+        """
+        Init variables that can change after restart of method, basically that
+        are dependent on lamda.
+
+        @param sigma step size
+        @xmean initial point
+        @lamda_factor factor for multiplying old lamda
+        """
         self.sigma = sigma
         if xmean is None:
             self.xmean = np.random.rand(self.N)
@@ -81,13 +99,21 @@ class CMAES(object):
         self.history['long_best'] = collections.deque()
         self.history['long_median'] = collections.deque()
 
-    def new_generation(self):
+    def newGeneration(self):
+        """
+        Generate new generation of individuals.
+        """
         self.generation += 1
         self.arz = np.random.randn(self.lamda, self.N)
         self.arx = self.xmean + self.sigma * np.dot(np.dot(self.B, self.D), self.arz.T).T
         return self.arx
 
     def update(self, arfitness):
+        """
+        Update values of method from new evaluated generation
+
+        @param arfitness list of func values to individuals
+        """
         self.counteval += self.lamda
         self.arfitness = arfitness
         # sort by fitness and compute weighted mean into xmean
@@ -123,16 +149,25 @@ class CMAES(object):
         if len(self.history['long_best']) >= self.long_history_len_up:
             self.history['long_best'].popleft()
             self.history['long_median'].popleft()
-        self.check_stop()
+        self.checkStop()
         if self.generation % 20 == 0:
-            self.log_state()
+            self.logState()
 
     def fmin(self):
+        """
+        Method for actual function minimization. Iterates while not end.
+        If unsuccess termination criteria is met then the method is restarted
+        with doubled population. If the number of maximum evaluations is
+        reached or the function is acceptable minimized, iterations ends and
+        result is returned.
+
+        @returns result of minimization
+        """
         while self.status != 0 and self.status != 1:
             if self.status > 2:
                 logging.warning("Restart due to %s", self.stop_criteria[self.status] )
                 self.restart(2)
-            pop = self.new_generation()
+            pop = self.newGeneration()
             values = np.empty(pop.shape[0])
             for i in xrange(pop.shape[0]):
                 values[i] = self.func(pop[i])
@@ -140,9 +175,16 @@ class CMAES(object):
         return self.result
     
     def restart(self, lamda_factor):
-        self.init_variables(self.store_parameters['sigma'], np.random.rand(self.N), lamda_factor=lamda_factor)
+        """
+        Restart whole method to initial state, but with population multiplied
+        by lamda_factor.
+        """
+        self.initVariables(self.store_parameters['sigma'], np.random.rand(self.N), lamda_factor=lamda_factor)
 
-    def check_stop(self):
+    def checkStop(self):
+        """
+        Termination criteria of method. They are checked every iteration.
+        """
         i = self.generation % self.N
         self.stop_conditions = (self.arfitness[0] <= self.stopfitness,
                                 self.counteval > self.stopeval,
@@ -160,12 +202,18 @@ class CMAES(object):
             self.status = self.stop_conditions.index(True)
         return True
 
-    def log_state(self):
+    def logState(self):
+        """
+        Function for logging the progress of method.
+        """
         logging.debug("generation: {generation:<5}, v: {v_function:<6.2e}, sigma: {sigma:.2e}, best: {best}".format(
             generation=self.generation, best=map(lambda x: round(x, 3), self.arx[self.arindex[0]]), v_function=self.arfitness[0], sigma=self.sigma))
 
     @property
     def result(self):
+        """
+        Result of method. Not returned while minimization is in progress.
+        """
         if self.status < 0:
                 raise AttributeError("Result is not ready yet, cmaes is not finished")
         else:
@@ -185,9 +233,9 @@ class CMAES(object):
 
 
 def fmin(func, N):
-    #xmean = np.array([0.7138, 0.308, -0.0001, 1.0, 0.6003, 0.4096, 0.354, 0.663, 1.0001, -0.0001])
-    #sigma = 2.01e-06
-    #c = CMAES(func, N, xmean=xmean, sigma=sigma)
+    """
+    Function for easy call function minimization from other modules.
+    """
     c = CMAES(func, N)
     return c.fmin()
 

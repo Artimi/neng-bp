@@ -14,25 +14,38 @@ import support_enumeration
 
 
 class Game(object):
-    METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
-               'Anneal', 'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP',
-               'cmaes', 'support_enumeration', 'pne', 'cma']
-# not Newton-CG there is needed jacobian of function
+    """
+    Class Game wrap around all informations of noncooperative game. Also
+    it provides basic analyzation of game, like bestResponse, if the game
+    is degenerate. It also contains an algorithm for iterative elimination
+    of strictly dominated strategies and can compute pure Nash equilibria
+    using brute force.
+
+    usage:
+    >>> g = Game(game_str)
+    >>> ne = g.findEquilibria(method='pne')
+    >>> print g.printNE(ne)
+    """
+    METHODS = ['L-BFGS-B', 'SLSQP', 'CMAES', 'support_enumeration', 'pne']
 
     def __init__(self, nfg, trim='normalization'):
+        """
+        @param nfg string containing the game in nfg format
+        @trim method of assuring that strategy profile lies in Delta
+        """
         self.read(nfg)
-        self.trim = trim
+        self.deltaAssuranceMethod = trim
         self.players_zeros = np.zeros(self.num_players)
         self.brs = None
-        self.degenerated = None
+        self.degenerate = None
         self.deleted_strategies = None
 
     def bestResponse(self, player, strategy):
         """
-        Computes bestResponse strategy profile for given opponent strategy and
-        player
+        Computes pure best response strategy profile for given opponent strategy 
+        and player
 
-        @params strategy opponent strategy
+        @params opponent strategy
         @param player who should respond
         @return set of strategies
         """
@@ -52,12 +65,11 @@ class Game(object):
 
     def getPNE(self):
         """
-        Function computes PNE
+        Function computes pure Nash equlibria using brute force algorithm.
 
         @return set of strategy profiles that was computed as pure nash
         equlibria
         """
-        # view = [slice(None) for i in range(self.num_players)]
         self.brs = [set() for i in xrange(self.num_players)]
         for player in xrange(self.num_players):
             p_view = self.shape[:]
@@ -67,15 +79,15 @@ class Game(object):
                 # add to list of best responses
                 self.brs[player].update(self.bestResponse(player, strategy))
         # check degeneration of a game
-        self.degenerated = self.isDegenerated()
-        # PNE is where all player have Best Response
+        self.degenerate = self.isDegenerate()
+        # PNE is where all player have best response
         ne_coordinates = set.intersection(*self.brs)
         result = map(self.coordinateToStrategyProfile, ne_coordinates)
         return result
 
     def getDominatedStrategies(self):
         """
-        @return list of players' dominated strategies
+        @return list of dominated strategies per player
         """
         empty = [slice(None)] * self.num_players
         result = []
@@ -99,11 +111,14 @@ class Game(object):
             result.append(dominated_strategies)
         return result
 
-    def iteratedEliminationDominatedStrategies(self):
+    def IESDS(self):
         """
+        Iterative elimination of strictly dominated strategies.
+
         Eliminates all strict dominated strategies, preserve self.array and
         self.shape in self.init_array and self.init_shape. Stores numbers of
-        deleted strategies in self.deleted_strategies.
+        deleted strategies in self.deleted_strategies. Deletes strategies
+        from self.array and updates self.shape.
         """
         self.init_array = self.array[:]
         self.init_shape = self.shape[:]
@@ -125,8 +140,11 @@ class Game(object):
         for player in xrange(self.num_players):
             self.deleted_strategies[player].sort()
 
-    def isDegenerated(self):
+    def isDegenerate(self):
         """
+        Degenerate game is defined for two-players games and there can be
+        infinite number of mixed Nash equilibria.
+
         @return True|False if game is said as degenerated
         """
         if self.num_players != 2:
@@ -140,30 +158,34 @@ class Game(object):
         else:
             return False
 
-    def v_function(self, strategy_profile):
+    def LyapunovFunction(self, strategy_profile):
         """
-        Lyapunov function. If v_function(p) == 0 then p is NE.
+        Lyapunov function. If LyapunovFunction(p) == 0 then p is NE.
 
         xij(p) = ui(si, p_i)
         yij(p) = xij(p) - ui(p)
         zij(p) = max[yij(p), 0]
-        v(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2 + penalty
+        LyapunovFunction(p) = sum_{i \in N} sum_{1 <= j <= mi} [zij(p)]^2
+
+        Beside this function we need that strategy_profile is in universum
+        Delta (basicaly to have character of probabilities for each player).
+        We can assure this with two methods: normalization and penalization.
 
         @params strategy_profile list of parameters to function
-        @return value of v_function in given strategy_profile
+        @return value of LyapunovFunction in given strategy_profile
         """
         v = 0.0
         acc = 0
-        deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
-        if self.trim == 'normalization':
-            deep_strategy_profile = self.normalize_deep_strategy_profile(deep_strategy_profile)
+        deep_strategy_profile = self.strategyProfileToDeep(strategy_profile)
+        if self.deltaAssuranceMethod == 'normalization':
+            deep_strategy_profile = self.normalizeDeepStrategyProfile(deep_strategy_profile)
         else:
             strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
             out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2)
             v += out_of_box_penalty
         for player in range(self.num_players):
             u = self.payoff(deep_strategy_profile, player)
-            if self.trim == 'penalization':
+            if self.deltaAssuranceMethod == 'penalization':
                 one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
                 v += one_sum_penalty
             acc += self.shape[player]
@@ -176,11 +198,11 @@ class Game(object):
     
     def payoff(self, strategy_profile, player, pure_strategy=None):
         """
-        Function to compute payoff of given strategy_profile
+        Function to compute payoff of given strategy_profile.
 
         @param strategy_profile list of probability distributions
-        @param pplayer player for who the payoff is computated
-        @param pure_strategy if not None pplayer strategy will be replaced
+        @param player player for who the payoff is computated
+        @param pure_strategy if not None player strategy will be replaced
         by pure_strategy
         @param normalize use normalization to strategy_profile
         @return value of payoff
@@ -193,18 +215,19 @@ class Game(object):
                 new_strategy[pure_strategy] = 1.0
                 deep_strategy_profile[player] = new_strategy
         elif len(strategy_profile) == self.sum_shape:
-            deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
+            deep_strategy_profile = self.strategyProfileToDeep(strategy_profile)
         else:
             raise Exception("Length of strategy_profile: '{0}', does not match.".format(strategy_profile))
+        # make product of each probability, returns num_players-dimensional array 
         product = reduce(lambda x, y: np.tensordot(x, y, 0), deep_strategy_profile)
         result = np.sum(product * self.array[player])
         return result
 
-    def strategy_profile_to_deep(self, strategy_profile):
+    def strategyProfileToDeep(self, strategy_profile):
         """
         Convert strategy_profile to deep_strategy_profile.
         It means that instead of list of length sum_shape we have got nested
-        list of length num_players and inner lists are of shape[player] length
+        list of length num_players and inner arrays are of shape[player] length
 
         @param strategy_profile to convert
         @return deep_strategy_profile
@@ -228,13 +251,13 @@ class Game(object):
         """
         return np.abs(strategy) / np.sum(np.abs(strategy))
 
-    def normalize_deep_strategy_profile(self, deep_strategy_profile):
+    def normalizeDeepStrategyProfile(self, deep_strategy_profile):
         for index, strategy in enumerate(deep_strategy_profile):
             deep_strategy_profile[index] = self.normalize(strategy)
         return deep_strategy_profile
 
 
-    def normalize_strategy_profile(self, strategy_profile):
+    def normalizeStrategyProfile(self, strategy_profile):
         """
         Normalize whole strategy profile by strategy of each player
 
@@ -249,12 +272,12 @@ class Game(object):
             acc += i
         return result
 
-    def findEquilibria(self, method='cmaes'):
+    def findEquilibria(self, method='CMAES'):
         """
         Find all equilibria, using method
 
         @params method method from Game.METHODS to be used
-        @return list of NE(list of probabilities)
+        @return list of NE(list of probabilities), if not found return None
         """
         if method == 'pne':
             result = self.getPNE()
@@ -268,10 +291,10 @@ class Game(object):
                 return None
             else:
                 return result
-        elif method == 'cmaes':
-            result = cmaes.fmin(self.v_function, self.sum_shape)
+        elif method == 'CMAES':
+            result = cmaes.fmin(self.LyapunovFunction, self.sum_shape)
         elif method in self.METHODS:
-            result = scipy.optimize.minimize(self.v_function,
+            result = scipy.optimize.minimize(self.LyapunovFunction,
                                              np.random.rand(self.sum_shape),
                                              method=method, tol=1e-10,
                                              options={"maxiter":1e3 * self.sum_shape ** 2})
@@ -286,7 +309,7 @@ class Game(object):
     def read(self, nfg):
         """
         Reads game in .nfg format and stores data to class variables.
-        Can read nfg files in outcome and payoff version
+        Can read nfg files in outcome and payoff version.
 
         @param nfg string with nfg formated game
         """
@@ -365,7 +388,7 @@ class Game(object):
 
     def coordinateToStrategyProfile(self, t):
         """
-        Translate tuple form of strategy profile to long, gambit-like format
+        Translate tuple form of strategy profile to list of probabilities
 
         @params t tuple to translate
         @return list of numbers in long format
@@ -386,10 +409,10 @@ class Game(object):
         """
         result = ""
         success = True
-        if self.degenerated:
+        if self.degenerate:
             logging.warning("Game is degenerated")
         for index, ne in enumerate(nes):
-            ne = self.normalize_strategy_profile(ne)
+            ne = self.normalizeStrategyProfile(ne)
             print_ne = list(ne)
             # assure that printed result are in same shape as self.init_shape
             if self.deleted_strategies is not None:
@@ -459,15 +482,24 @@ class Game(object):
 if __name__ == '__main__':
     import argparse
     import time
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file')
-    parser.add_argument('-m', '--method', default='cmaes', choices=Game.METHODS)
-    parser.add_argument('-e', '--elimination', action='store_true', default=False)
-    parser.add_argument('-p', '--payoff', action='store_true', default=False)
-    parser.add_argument('-c', '--checkNE', action='store_true', default=False)
-    parser.add_argument('-t', '--trim', choices=('normalization', 'penalization'), default='normalization')
-    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"))
-    parser.add_argument('--log-file', default=None)
+    parser = argparse.ArgumentParser(
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description="""
+NenG - Nash Equilibrium Noncooperative Games.
+Tool for computing Nash equilibria in noncooperative games.
+Specifically:
+All pure Nash equilibria in all games (--method=pne).
+All mixed Nash equilibria in two-players games (--method=support_enumeration).
+One sample mixed Nash equilibria in n-players games (--method={CMAES,L-BFGS-B,SLSQP}).
+            """)
+    parser.add_argument('-f', '--file', required=True, help="File where game in nfg format is saved.")
+    parser.add_argument('-m', '--method', default='CMAES', choices=Game.METHODS, help="Method to use for computing Nash equlibria.")
+    parser.add_argument('-e', '--elimination', action='store_true', default=False, help="Use Iterative Elimination of Strictly Dominated Strategies before computing NE.")
+    parser.add_argument('-p', '--payoff', action='store_true', default=False, help="Print also players payoff with each Nash equilibrium.")
+    parser.add_argument('-c', '--checkNE', action='store_true', default=False, help="After computation check if found strategy profile is really Nash equilibrium.")
+    parser.add_argument('-t', '--trim', choices=('normalization', 'penalization'), default='normalization', help="Method for keeping strategy profile in probability distribution universum.")
+    parser.add_argument('-l', '--log', default="WARNING", choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"), help="Level of logs to save/print")
+    parser.add_argument('--log-file', default=None, help='Log file. If omitted log is printed to stdout.')
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log.upper(), None),
                         format="%(levelname)s, %(asctime)s, %(message)s", filename=args.log_file)
@@ -478,7 +510,7 @@ if __name__ == '__main__':
     g = Game(game_str, args.trim)
     logging.debug("Reading the game took: {0} s".format(time.time() - start))
     if args.elimination:
-        g.iteratedEliminationDominatedStrategies()
+        g.IESDS()
     result = g.findEquilibria(args.method)
     if result is not None:
         text, success =  g.printNE(result, payoff=args.payoff, checkNE=args.checkNE)

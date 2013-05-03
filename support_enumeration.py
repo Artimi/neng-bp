@@ -6,11 +6,15 @@ import logging
 import itertools
 
 class SupportEnumeration(object):
+    """
+    Class providing support enumeration method for finding all mixed Nash
+    equilibria in two-players games.
+    """
 
     def __init__(self, game):
         self.game = game
 
-    def get_equation_set(self, combination, player, num_supports):
+    def getEquationSet(self, combination, player, num_supports):
         """
         Return set of equations for given player and combination of strategies
         for 2 players games in support_enumeration
@@ -45,7 +49,7 @@ class SupportEnumeration(object):
         numbers = np.vstack((numbers, last_row))
         return numbers
 
-    def support_enumeration(self):
+    def supportEnumeration(self):
         """
         Computes all mixed NE of 2 player noncooperative games.
         If the game is degenerate game.degenerate flag is ticked.
@@ -70,7 +74,7 @@ class SupportEnumeration(object):
                 is_mne = True
                 # for both player compute set of equations
                 for player in xrange(self.game.num_players):
-                    equations = self.get_equation_set(combination, player,
+                    equations = self.getEquationSet(combination, player,
                                                       num_supports)
                     try:
                         equations_result = np.linalg.solve(equations, equal)
@@ -100,11 +104,14 @@ class SupportEnumeration(object):
                             is_mne = False
                             break
                     if len(br[0]) != len(br[1]):
-                        self.game.degenerated = True
+                        self.game.degenerate = True
                 if is_mne:
                     result.append([item for sublist in mne for item in sublist])
         return result
 
 def computeNE(game):
+    """
+    Function for easy calling SupportEnumeration from other modules.
+    """
     se = SupportEnumeration(game)
-    return se.support_enumeration()
+    return se.supportEnumeration()
