@@ -4,13 +4,14 @@
 from __future__ import division
 import numpy as np
 import shlex
-import itertools
 from operator import mul
 import scipy.optimize
 import sys
 import logging
 import cmaes
-import ipdb
+#import ipdb
+import support_enumeration
+
 
 class Game(object):
     METHODS = ['Nelder-Mead', 'Powell', 'CG', 'BFGS',
@@ -138,97 +139,6 @@ class Game(object):
         else:
             return False
 
-    def get_equation_set(self, combination, player, num_supports):
-        """
-        Return set of equations for given player and combination of strategies
-        for 2 players games in support_enumeration
-
-        This function returns matrix to compute (Nisan algorithm 3.4)
-        (I = combination[player])
-        \sum_{i \in I} x_i b_{ij} = v
-        \sum_{i \in I} x_i = 1
-        In matrix form (k = num_supports):
-        / b_11 b_12 ... b_1k -1 \ / x_1 \    / 0 \
-        | b_21 b_22 ... b_2k -1 | | x_2 |    | 0 |
-        | ...  ...  ... ... ... | | ... | =  |...|
-        | b_k1 b_k2 ... b_kk -1 | | x_k |    | 0 |
-        \ 1    1    ... 1     0 / \ v   /    \ 1 /
-
-        @params combination combination of strategies to make equation set
-        @params player number of player for who the equation matrix will be done
-        @params num_supports number of supports for players
-        @return equation matrix for solving in e.g. np.linalg.solve
-        """
-        row_index = np.zeros(self.shape[0], dtype=bool)
-        col_index = np.zeros(self.shape[1], dtype=bool)
-        row_index[list(combination[0])] = True
-        col_index[list(combination[1])] = True
-        numbers = self.array[(player + 1) % 2][row_index][:, col_index]
-        last_row = np.ones((1, num_supports + 1))
-        last_row[0][-1] = 0
-        last_column = np.ones((num_supports, 1)) * -1
-        if player == 0:
-            numbers = numbers.T
-        numbers = np.hstack((numbers, last_column))
-        numbers = np.vstack((numbers, last_row))
-        return numbers
-
-    def support_enumeration(self):
-        """
-        Computes NE of 2 players nondegenerate games_result
-
-        @return set of NE computed by method support enumeration
-        """
-        #result = self.getPNE()
-        result = []
-        # for every numbers of supports
-        for num_supports in xrange(1, min(self.shape) + 1):
-            logging.debug("Support enumearation for num_supports: {0}".format(num_supports))
-            supports = []
-            equal = [0] * num_supports
-            equal.append(1)
-            # all combinations of support length num_supports
-            for player in xrange(self.num_players):
-                supports.append(itertools.combinations(
-                    xrange(self.shape[player]), num_supports))
-            # cartesian product of combinations of both player
-            for combination in itertools.product(supports[0], supports[1]):
-                mne = []
-                is_mne = True
-                # for both player compute set of equations
-                for player in xrange(self.num_players):
-                    equations = self.get_equation_set(combination, player,
-                                                      num_supports)
-                    try:
-                        equations_result = np.linalg.solve(equations, equal)
-                    except np.linalg.LinAlgError:  # unsolvable equations
-                        is_mne = False
-                        break
-                    probabilities = equations_result[:-1]
-                    # all probabilities are nonnegative
-                    if not np.all(probabilities >= 0):
-                        is_mne = False
-                        break
-                    player_strategy_profile = np.zeros(self.shape[player])
-                    player_strategy_profile[list(combination[player])] = probabilities
-                    mne.append(player_strategy_profile)
-                #best response
-                if is_mne:
-                    for player in xrange(self.num_players):
-                        if player == 0:
-                            oponent_strategy = mne[(player + 1) % 2].reshape(1, self.shape[1])
-                        else:
-                            oponent_strategy = mne[(player + 1) % 2].reshape(self.shape[0], 1)
-                        payoffs = np.sum(self.array[player] * oponent_strategy, axis=(player + 1) % 2)
-                        maximum = np.max(payoffs)
-                        br = tuple(np.where(abs(payoffs - maximum)< 1e-6)[0])
-                        if br != combination[player]:
-                            is_mne = False
-                            break
-                if is_mne:
-                    result.append([item for sublist in mne for item in sublist])
-        return result
-
     def v_function(self, strategy_profile):
         """
         Lyapunov function. If v_function(p) == 0 then p is NE.
@@ -349,7 +259,7 @@ class Game(object):
             else:
                 return result
         elif self.num_players == 2 and method == 'support_enumeration':
-            result = self.support_enumeration()
+            result = support_enumeration.computeNE(self)
             if len(result) == 0:
                 return None
             else:
@@ -553,7 +463,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--elimination', action='store_true', default=False)
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
     parser.add_argument('-c', '--checkNE', action='store_true', default=False)
-    parser.add_argument('--log', default="CRITICAL", choices=("DEBUG", "INFO",
+    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO",
                                                              "WARNING", "ERROR",
                                                              "CRITICAL"))
     parser.add_argument('--log-file', default=None)
