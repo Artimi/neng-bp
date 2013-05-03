@@ -18,7 +18,7 @@ class CMAES(object):
                                  'sigma': sigma,
                                  'xmean': xmean,
                                 }
-        self.stopeval = 1e3 * self.N ** 2
+        self.stopeval = 1e4 * self.N / 2
         self.stopfitness = 1e-10
         self.eigenval = 0
         # generation loop
@@ -128,8 +128,8 @@ class CMAES(object):
             self.log_state()
 
     def fmin(self):
-        while self.status != 0:
-            if self.status > 1:
+        while self.status != 0 and self.status != 1:
+            if self.status > 2:
                 logging.warning("Restart due to %s", self.stop_criteria[self.status] )
                 self.restart(2)
             pop = self.new_generation()
@@ -166,7 +166,7 @@ class CMAES(object):
 
     @property
     def result(self):
-        if self.status != 0:
+        if self.status < 0:
                 raise AttributeError("Result is not ready yet, cmaes is not finished")
         else:
             self._result = scipy.optimize.Result()        

@@ -19,8 +19,9 @@ class Game(object):
                'cmaes', 'support_enumeration', 'pne', 'cma']
 # not Newton-CG there is needed jacobian of function
 
-    def __init__(self, nfg):
+    def __init__(self, nfg, trim='normalization'):
         self.read(nfg)
+        self.trim = trim
         self.players_zeros = np.zeros(self.num_players)
         self.brs = None
         self.degenerated = None
@@ -154,14 +155,17 @@ class Game(object):
         v = 0.0
         acc = 0
         deep_strategy_profile = self.strategy_profile_to_deep(strategy_profile)
-        deep_strategy_profile = self.normalize_deep_strategy_profile(deep_strategy_profile)
-        #strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
-        #out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2)
-        #v += out_of_box_penalty * 10
+        if self.trim == 'normalization':
+            deep_strategy_profile = self.normalize_deep_strategy_profile(deep_strategy_profile)
+        else:
+            strategy_profile_repaired = np.clip(strategy_profile, 0, 1)
+            out_of_box_penalty = np.sum((strategy_profile - strategy_profile_repaired) ** 2)
+            v += out_of_box_penalty
         for player in range(self.num_players):
             u = self.payoff(deep_strategy_profile, player)
-            #one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
-            #v += one_sum_penalty
+            if self.trim == 'penalization':
+                one_sum_penalty = (1 - np.sum(strategy_profile[acc:acc+self.shape[player]])) ** 2
+                v += one_sum_penalty
             acc += self.shape[player]
             for pure_strategy in range(self.shape[player]):
                 x = self.payoff(deep_strategy_profile, player, pure_strategy)
@@ -272,7 +276,6 @@ class Game(object):
                                              method=method, tol=1e-10,
                                              options={"maxiter":1e3 * self.sum_shape ** 2})
         logging.info(result)
-        #self.degenerated = self.isDegenerated()
         if result.success:
             r = []
             r.append(result.x)
@@ -288,10 +291,9 @@ class Game(object):
         @param nfg string with nfg formated game
         """
         tokens = shlex.split(nfg)
-        #preface = ["NFG", "1", "R"]
-        #if tokens[:3] != preface:
-            #raise exceptions.FormatError(
-                #"Input string is not valid nfg format")
+        preface = ["NFG", "1", "R"]
+        if tokens[:3] != preface:
+            raise Exception("Input string is not valid nfg format")
         self.name = tokens[3]
         brackets = [i for i, x in enumerate(tokens) if x == "{" or x == "}"]
         if len(brackets) == 4:
@@ -463,9 +465,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--elimination', action='store_true', default=False)
     parser.add_argument('-p', '--payoff', action='store_true', default=False)
     parser.add_argument('-c', '--checkNE', action='store_true', default=False)
-    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO",
-                                                             "WARNING", "ERROR",
-                                                             "CRITICAL"))
+    parser.add_argument('-t', '--trim', choices=('normalization', 'penalization'), default='normalization')
+    parser.add_argument('--log', default="WARNING", choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"))
     parser.add_argument('--log-file', default=None)
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log.upper(), None),
@@ -474,7 +475,7 @@ if __name__ == '__main__':
     with open(args.file) as f:
         game_str = f.read()
     start = time.time()
-    g = Game(game_str)
+    g = Game(game_str, args.trim)
     logging.debug("Reading the game took: {0} s".format(time.time() - start))
     if args.elimination:
         g.iteratedEliminationDominatedStrategies()

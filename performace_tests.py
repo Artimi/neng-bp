@@ -29,8 +29,8 @@ RESULT_LYAPUNOV_DIR =  "/home/psebek/projects/bp/neng/tests_results/lyapunov/"
 
 METHODS = ['L-BFGS-B', 'SLSQP', 'cmaes']
 
-MAIN_GAMES = ['coord333.nfg', 'coord4.nfg','2x2x2.nfg', '2x2x2x2.nfg', '2x2x2x2x2.nfg']#, '5x5x5.nfg', '8x8x8.nfg']
-MAIN_GAMES_NAMES = ['coord333', 'coord4','2x2x2', '2x2x2x2', '2x2x2x2x2']#, '5x5x5', '8x8x8']
+MAIN_GAMES = ['coord333.nfg', 'coord4.nfg','2x2x2.nfg', '2x2x2x2.nfg', '2x2x2x2x2.nfg', '5x5x5.nfg', '8x8x8.nfg']
+MAIN_GAMES_NAMES = ['coord333', 'coord4','2x2x2', '2x2x2x2', '2x2x2x2x2', '5x5x5', '8x8x8']
 
 PLOT_LINES = ['rs--', 'g^--', 'bo--']
 
@@ -49,17 +49,17 @@ def readNEs(ne_str):
 
 def array_close_in(array, list_arrays):
     for i in list_arrays:
-        if np.allclose(array, i):
+        if np.allclose(array, i, atol=1e-3):
             return True
     return False
 
 def run_command(command):
-    try:
-        start = time.time()
-        p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-    except KeyboardInterrupt:
-        return None, None, None
+    #try:
+    start = time.time()
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    #except KeyboardInterrupt:
+        #return None, None, None
     if CHECK_RETURN_CODE and p.returncode != 0:
         t = None
         print "Return code:", p.returncode, ", err:", err
@@ -67,7 +67,7 @@ def run_command(command):
         t = time.time() - start
     return t, out, err
 
-def test_games(games, method, out_file, games_dir, result_dir = None):
+def test_games(games, method, out_file, games_dir, result_dir = None, trim='normalization'):
     result_dir = games_dir + 'result/'
     times = []
     success = []
@@ -82,7 +82,10 @@ def test_games(games, method, out_file, games_dir, result_dir = None):
             elif method == 'gambit-enumpure':
                 t, out, err = run_command([method, "-q" , games_dir + game_name])
             else:
-                t, out, err = run_command([SCRIPT, "-f=%s" % games_dir + game_name, "-m=%s" % method])
+                if trim == 'normalization':
+                    t, out, err = run_command([SCRIPT, "-f=%s" % games_dir + game_name, "-m=%s" % method])
+                else:
+                    t, out, err = run_command([SCRIPT, "-f=%s" % games_dir + game_name, "-m=%s" % method, '-t=penalization'])
             if t is not None and TEST_NE and out:
                 with open(games_dir + game_name) as f:
                     g = game.Game(f.read())
@@ -90,7 +93,8 @@ def test_games(games, method, out_file, games_dir, result_dir = None):
                 if result_dir is not None:
                     with open(result_dir + game_name) as f:
                         result = readNEs(f.read())
-                    if len(nes) != len(result):
+                    if method not in METHODS and len(nes) != len(result):
+                        print "Not enough results"
                         t = None
                 for ne in nes:
                     if g.checkNE(ne, num_tests=200, accuracy=1e-3) == False:
@@ -203,127 +207,11 @@ def pne(players):
     with open(RESULT_PNE_DIR+"pne.json", "w") as f:
         json.dump(result, f, indent=1)
     return 
-    games2_range = range(5,151,5)
-    games2 = ["p2a{0}.nfg".format(i) for i in games2_range]
-    games2_gambit, success2_gambit = test_games(games2, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p2.times", GAMES_DIR_PNE)
-    games2_neng, success2_neng = test_games(games2, "pne", RESULT_PNE_DIR + "p2.times", GAMES_DIR_PNE)
-    l = [[[games2_range, games2_gambit, PLOT_LINES[0]], {'label': 'gambit_enumpure'}],[[games2_range, games2_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 2 hráče', filename='plots/pne2.eps')
-    result['games2'] = {
-
-            'games_range': games2_range,
-            'games': games2,
-            'gambit-enumpure':{
-                'time': games2_gambit,
-                'success': success2_gambit,            
-                            },
-            'neng':{
-                'time': games2_neng,
-                'success': success2_neng,            
-                    }
-                        }
-
-    games3_range = range(5,101,5)
-    games3 = ["p3a{0}.nfg".format(i) for i in games3_range]
-    games3_gambit, success3_gambit = test_games(games3, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p3.times", GAMES_DIR_PNE)
-    games3_neng, success3_neng = test_games(games3, "pne", RESULT_PNE_DIR + "p3.times", GAMES_DIR_PNE)
-    l = [[[games3_range, games3_gambit, PLOT_LINES[0]], {'label': 'gambit-enumpure'}],[[games3_range, games3_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 3 hráče', filename='plots/pne3.eps')
-    result['games3'] = {
-            'games_range': games3_range,
-            'games': games3,
-            'gambit-enumpure':{
-                'time': games3_gambit,
-                'success': success3_gambit,            
-                            },
-            'neng':{
-                'time': games3_neng,
-                'success': success3_neng,            
-                    }
-                        }
-
-    games4_range = range(5,36,5)
-    games4 = ["p4a{0}.nfg".format(i) for i in games4_range]
-    games4_gambit, success4_gambit = test_games(games4, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p4.times", GAMES_DIR_PNE)
-    games4_neng, success4_neng = test_games(games4, "pne", RESULT_PNE_DIR + "p4.times", GAMES_DIR_PNE)
-    #games4_neng = [0.18393802642822266, 0.5240747928619385, 1.9133491516113281, 5.456552028656006, 12.942892074584961, 26.56980800628662, 49.13551092147827]
-    #games4_gambit = [0.009245157241821289, 0.0762019157409668, 0.3323228359222412, 1.025184154510498, 2.4503719806671143, 5.070526838302612, 9.467783212661743]
-    l = [[[games4_range, games4_gambit, PLOT_LINES[0]], {'label': 'gambit-enumpure'}],[[games4_range, games4_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 4 hráče', filename='plots/pne4.eps')
-    result['games4'] = {
-            'games_range': games4_range,
-            'games': games4,
-            'gambit-enumpure':{
-                'time': games4_gambit,
-                'success': success4_gambit,            
-                            },
-            'neng':{
-                'time': games4_neng,
-                'success': success4_neng,            
-                    }
-                        }
-
-    games5_range = range(2,23,2)
-    games5 = ["p5a{0}.nfg".format(i) for i in games5_range]
-    games5_gambit, success5_gambit = test_games(games5, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p5.times", GAMES_DIR_PNE)
-    games5_neng, success5_neng = test_games(games5, "pne", RESULT_PNE_DIR + "p5.times", GAMES_DIR_PNE) 
-    l = [[[games5_range, games5_gambit, PLOT_LINES[0]], {'label': 'gambit-enumpure'}],[[games5_range, games5_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 5 hráčů', filename='plots/pne5.eps')
-    result['games5'] = {
-            'games_range': games5_range,
-            'games': games5,
-            'gambit-enumpure':{
-                'time': games5_gambit,
-                'success': success5_gambit,            
-                            },
-            'neng':{
-                'time': games5_neng,
-                'success': success5_neng,            
-                    }
-                        }
-
-    games6_range = range(2,13,2)
-    games6 = ["p6a{0}.nfg".format(i) for i in games6_range]
-    games6_gambit, success6_gambit = test_games(games6, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p6.times", GAMES_DIR_PNE)
-    games6_neng, success6_neng = test_games(games6, "pne", RESULT_PNE_DIR + "p6.times", GAMES_DIR_PNE)
-    l = [[[games6_range, games6_gambit, PLOT_LINES[0]], {'label': 'gambit-enumpure'}],[[games6_range, games6_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 6 hráčů', filename='plots/pne6.eps')
-    result['games6'] = {
-            'games_range': games6_range,
-            'games': games6,
-            'gambit-enumpure':{
-                'time': games6_gambit,
-                'success': success6_gambit,            
-                            },
-            'neng':{
-                'time': games6_neng,
-                'success': success6_neng,            
-                    }
-                        }
-
-    games7_range = range(2,11,2)
-    games7 = ["p7a{0}.nfg".format(i) for i in games7_range]
-    games7_gambit, success7_gambit = test_games(games7, "gambit-enumpure", RESULT_PNE_DIR + "gambit_enumpure_p7.times", GAMES_DIR_PNE)
-    games7_neng, success7_neng = test_games(games7, "pne", RESULT_PNE_DIR + "p7.times", GAMES_DIR_PNE)
-    l = [[[games7_range, games7_gambit, PLOT_LINES[0]], {'label': 'gambit-enumpure'}],[[games7_range, games7_neng, PLOT_LINES[-1]], {'label':'neng-pne'}]]
-    save_plot(l, xlabel=u'Počet strategií hráče', title=u'Ryzí Nashovo ekvilibrium pro 7 hráčů', filename='plots/pne7.eps')
-    result['games7'] = {
-            'games_range': games7_range,
-            'games': games7,
-            'gambit-enumpure':{
-                'time': games7_gambit,
-                'success': success7_gambit,            
-                            },
-            'neng':{
-                'time': games7_neng,
-                'success': success7_neng,            
-                    }
-                        }
 
 def lyapunov():
     result = {}
     l = []
-    for index, method in enumerate(METHODS):
+    for index, method in enumerate(('cmaes',)):
         print
         print method
         result[method] = {}
